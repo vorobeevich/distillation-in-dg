@@ -1,9 +1,6 @@
 import argparse
-import collections
-import warnings
 
 import numpy as np
-import torch
 
 from src.utils.fix_seed import fix_seed
 from src.utils.parse_config import parse_config

@@ -3,12 +3,15 @@ model:
   name: resnet34
   kwargs:
     weights: ResNet34_Weights.IMAGENET1K_V1
+last_layer: [512, 4]
 augmentations:
-  RandomResizedCrop:
+  - name: RandomResizedCrop
     kwargs: 
-      scale: (0.8, 1.0), 
-      ratio: (0.9, 1.1)
-  RandomHorizontalFlip:
+      size: 227
+      scale: [0.8, 1.0]
+      ratio: [0.9, 1.1]
+  - name: RandomHorizontalFlip
+    kwargs: {}
 optimizer:
   name: SGD
   kwargs:
