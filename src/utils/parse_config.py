@@ -1,18 +1,24 @@
 import os
 import yaml
 import argparse
-import importlib
 
 import torch
 import torchvision
 
 from src.utils.get_device import get_device
+import src.datasets.PACS_dataset
 
 def init_object(obj_cfg, module):
     return getattr(module, obj_cfg["name"])(**obj_cfg["kwargs"])
 
+def init_object_list(cfg_list, module):
+    res = []
+    for obj in cfg_list:
+        res.append(init_object(obj, module))
+    return res
+
 def parse_config(args: argparse.Namespace):
-    """Function to parse command line parameters and config parameters (dataset, model architecture, 
+    """Parse command line parameters and config parameters (dataset, model architecture, 
     training parameters, augmentations).
 
     Args:
@@ -29,7 +35,7 @@ def parse_config(args: argparse.Namespace):
 
     # init return params
     trainer_params = {
-        'num_epochs' : cfg["trainer"]["num_epochs"]
+        "num_epochs" : cfg["trainer"]["num_epochs"]
     }
     # init model params
     trainer_params["model"] = init_object(cfg["model"], torchvision.models)
@@ -46,8 +52,8 @@ def parse_config(args: argparse.Namespace):
     cfg["scheduler"]["kwargs"].update(optimizer=trainer_params["optimizer"])
     trainer_params["scheduler"] = init_object(cfg["scheduler"], torch.optim.lr_scheduler)
     
-    trainer_params["augmentations"] = []
-    for aug in cfg["augmentations"]:
-        trainer_params["augmentations"].append(init_object(aug, torchvision.transforms))
-    trainer_params["augmentations"] = torchvision.transforms.Compose(trainer_params["augmentations"])
+    # init augmentations (to train images) and transforms (to train and test images)
+    trainer_params["augmentations"] = torchvision.transforms.Compose(init_object_list(cfg["augmentations"], torchvision.transforms))
+    trainer_params["transforms"] = torchvision.transforms.Compose(init_object_list(cfg["transforms"], torchvision.transforms))
+
     return trainer_params

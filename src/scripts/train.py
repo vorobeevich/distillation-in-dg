@@ -1,7 +1,5 @@
 import argparse
 
-import numpy as np
-
 from src.utils.fix_seed import fix_seed
 from src.utils.parse_config import parse_config
 
