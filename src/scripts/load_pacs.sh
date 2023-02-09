@@ -25,7 +25,7 @@ echo "Unpacking labels... |"
 unzip pacs_download_file_labels
 unzip pacs_label.zip
 
-mkdir -p ../../data/pacs/labelsgit 
+mkdir -p ../../data/pacs/labels 
 for domain in art_painting cartoon photo sketch;
   do
     rm ${domain}_crossval_kfold.txt
