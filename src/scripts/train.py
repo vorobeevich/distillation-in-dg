@@ -1,8 +1,11 @@
+import sys
+sys.path.append("./")
+
 import argparse
 
 from src.utils.fix_seed import fix_seed
 from src.utils.parse_config import parse_config
-
+from src.trainer.trainer import Trainer
 # fix random seeds for reproducibility
 fix_seed()
 
@@ -23,5 +26,5 @@ parser.add_argument(
     required=True
 )
 
-config = parse_config(parser.parse_args())
-print(config)
+trainer = parse_config(parser.parse_args())
+trainer.train()
