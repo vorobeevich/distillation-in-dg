@@ -1,59 +1,74 @@
 import os
 import yaml
 import argparse
+from datetime import datetime
+from copy import deepcopy
 
-import torch
-import torchvision
+import torch.optim
+import torch.nn as nn
+import torchvision.models
+import torchvision.transforms
 
 from src.utils.get_device import get_device
-import src.datasets.PACS_dataset
-
-def init_object(obj_cfg, module):
-    return getattr(module, obj_cfg["name"])(**obj_cfg["kwargs"])
-
-def init_object_list(cfg_list, module):
-    res = []
-    for obj in cfg_list:
-        res.append(init_object(obj, module))
-    return res
+from src.utils.init_functions import init_object, init_object_list
+from src.trainer.trainer import Trainer
+from src.logging.wandb import WandbLogger
 
 def parse_config(args: argparse.Namespace):
-    """Parse command line parameters and config parameters (dataset, model architecture, 
+    """Parse command line parameters and config_yaml parameters (dataset, model architecture, 
     training parameters, augmentations).
 
     Args:
-        args (argparse.Namespace): args from cl parser (path to config, path to checkpoint, GPU device).
+        args (argparse.Namespace): args from cl parser (path to config_yaml, path to checkpoint, GPU device).
     """
 
     # set device
     os.environ["CUDA_VISIBLE_DEVICES"] = args.device
-    device = get_device()
-
-    # read config from path
+    
+    # read config_yaml from path
     with open(args.config, "r") as stream:
-        cfg = yaml.safe_load(stream)
+        config_yaml = yaml.safe_load(stream)
 
-    # init return params
-    trainer_params = {
-        "num_epochs" : cfg["trainer"]["num_epochs"]
-    }
+    # init trainer params
+    config = dict()
+    for param in config_yaml["trainer"]:
+        config[param] = config_yaml["trainer"][param]
+
+    # save yaml version of config
+    config["config"] = deepcopy(config_yaml)
+
+    # init run_id
+    if config["run_id"] is None:
+        # use timestamp as default run-id
+        config["run_id"] = datetime.now().strftime(r"%m%d_%H%M%S")
+
+    # init wandb for logging    
+    config["logger"] = WandbLogger(config_yaml)
+
+    # init device
+    config["device"] = get_device()
+
     # init model params
-    trainer_params["model"] = init_object(cfg["model"], torchvision.models)
-    trainer_params["model"].fc = torch.nn.Linear(*cfg["last_layer"])
+    config["model"] = init_object(torchvision.models, config_yaml["model"])
+    config["model"].fc = nn.Linear(*config_yaml["last_layer"])
     
     # prepare for GPU training
-    trainer_params["model"].to(device)
+    config["model"].to(config["device"])
     
     # init optimizer with model params
-    cfg["optimizer"]["kwargs"].update(params=trainer_params["model"].parameters())
-    trainer_params["optimizer"] = init_object(cfg["optimizer"], torch.optim)
+    config["optimizer"] = config_yaml["optimizer"]
+    config["optimizer"]["kwargs"].update(params=config["model"].parameters())
+    config["optimizer"] = init_object(torch.optim, config["optimizer"])
     
     # init scheduler with optimizer params
-    cfg["scheduler"]["kwargs"].update(optimizer=trainer_params["optimizer"])
-    trainer_params["scheduler"] = init_object(cfg["scheduler"], torch.optim.lr_scheduler)
+    config["scheduler"] = config_yaml["scheduler"]
+    config["scheduler"]["kwargs"].update(optimizer=config["optimizer"])
+    config["scheduler"] = init_object(torch.optim.lr_scheduler, config_yaml["scheduler"])
     
     # init augmentations (to train images) and transforms (to train and test images)
-    trainer_params["augmentations"] = torchvision.transforms.Compose(init_object_list(cfg["augmentations"], torchvision.transforms))
-    trainer_params["transforms"] = torchvision.transforms.Compose(init_object_list(cfg["transforms"], torchvision.transforms))
+    config["dataset"]["kwargs"]["augmentations"] = torchvision.transforms.Compose(init_object_list(torchvision.transforms, config_yaml["augmentations"]))
+    config["dataset"]["kwargs"]["transforms"] = torchvision.transforms.Compose(init_object_list(torchvision.transforms, config_yaml["transforms"]))
 
-    return trainer_params
+
+    trainer = Trainer(**config)
+    return trainer
