@@ -1,37 +1,55 @@
-# load pacs images
+# create pacs images data
+
+# make directory for all data
+mkdir -p data/
+
+# make directory for pacs data
+mkdir -p data/pacs/
+
+# load from google drive
 echo -e "Start loading images... |"
-curl -o pacs_download_file_images -L "https://drive.google.com/uc?export=download&confirm=yes&id=1yDdfWL4Lm5_3-DrqMGSC5dWC-BFYzHq_"
+curl -o data/pacs/pacs_download_file_images -L "https://drive.google.com/uc?export=download&confirm=yes&id=1yDdfWL4Lm5_3-DrqMGSC5dWC-BFYzHq_"
+
+# unpacking download file
 echo "Unpacking images... |"
-unzip pacs_download_file_images
-unzip pacs_data.zip -d ../../data/
-rm ../../data/__MACOSX/* -r
-rm ../../data/__MACOSX -r
-rm ../../data/pacs_data/.DS_Store  
-rm pacs_download_file_images
-rm pacs_data.zip
+unzip data/pacs/pacs_download_file_images -d data/pacs/
 
-mv ../../data/pacs_data ../../data/pacs
-mkdir -p ../../data/pacs/images
+# unzip images to data folder
+unzip data/pacs/pacs_data.zip -d data/pacs/
 
-for folder in art_painting cartoon photo sketch;
-  do
-    mv ../../data/pacs/${folder}/ ../../data/pacs/images/
-  done
+# remove cache files
+rm data/pacs/__MACOSX/* -r
+rm data/pacs/__MACOSX -r
+rm data/pacs/pacs_data/.DS_Store  
+rm data/pacs/pacs_download_file_images
+rm data/pacs/pacs_data.zip
 
-# load pacs labels
+# rename pacs_data folder to images folder
+mv data/pacs/pacs_data data/pacs/images
+
+# create pacs labels data
+
+# make directory for labels data
+mkdir -p data/pacs/labels
+
+# load from google drive
 echo "Start loading labels... |"
-curl -o pacs_download_file_labels -L "https://drive.google.com/uc?export=download&confirm=yes&id=1-GZdDFs30abDDT8jmO2agBp0j9tbt_Qy"
-echo "Unpacking labels... |"
-unzip pacs_download_file_labels
-unzip pacs_label.zip
+curl -o data/pacs/pacs_download_file_labels -L "https://drive.google.com/uc?export=download&confirm=yes&id=1-GZdDFs30abDDT8jmO2agBp0j9tbt_Qy"
 
-mkdir -p ../../data/pacs/labels 
+# unpacking download file
+echo "Unpacking labels... |"
+
+unzip data/pacs/pacs_download_file_labels -d data/pacs/
+unzip data/pacs/pacs_label.zip -d data/pacs/labels
+
+# rename and remove files
 for domain in art_painting cartoon photo sketch;
   do
-    rm ${domain}_crossval_kfold.txt
-    mv ${domain}_train_kfold.txt ../../data/pacs/labels/${domain}_train.txt
-    mv ${domain}_test_kfold.txt ../../data/pacs/labels/${domain}_test.txt 
+    rm data/pacs/labels/${domain}_crossval_kfold.txt
+    mv data/pacs/labels/${domain}_train_kfold.txt data/pacs/labels/${domain}_train.txt
+    mv data/pacs/labels/${domain}_test_kfold.txt data/pacs/labels/${domain}_test.txt 
   done
 
-rm pacs_download_file_labels
-rm pacs_label.zip
+# remove cache files
+rm data/pacs/pacs_download_file_labels
+rm data/pacs/pacs_label.zip
