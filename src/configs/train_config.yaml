@@ -1,11 +1,9 @@
-dataset: 
-  name: PACS_dataset
-  kwargs: {}
+# arguments below init in code
 model: 
   name: resnet34
   kwargs:
     weights: ResNet34_Weights.IMAGENET1K_V1
-last_layer: [512, 4]
+last_layer: [512, 7]
 augmentations:
   - name: RandomResizedCrop
     kwargs: 
@@ -31,5 +29,16 @@ scheduler:
   kwargs:
     eta_min: 0.00003
     T_max: 100
+
+# arguments below send to trainer directly for training
 trainer: 
-  num_epochs: 100
+  num_epochs: 10
+  batch_size: 64
+  dataset: 
+    name: PACS_dataset
+    kwargs: 
+      domain_list: ["art_painting", "photo", "sketch", "cartoon"]
+  run_id: null
+
+# loging params
+wandb_project: distillation-generalization
