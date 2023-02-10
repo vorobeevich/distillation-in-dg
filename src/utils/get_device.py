@@ -16,6 +16,8 @@ def get_device(gpu_usage: bool = True) -> torch.device:
             "training will be performed on CPU."
         )
         device = "cpu"
+    elif not gpu_usage:
+        device = "cpu"
     else:
         device = torch.device("cuda:0")
 
