@@ -15,7 +15,7 @@ def get_paths_and_labels(dataset_types: list[str], domain: str) -> tuple[list[st
     paths = []
     labels = []
     for ds_type in dataset_types:
-        filepath = f"../../data/pacs/labels/{domain}_{ds_type}.txt"
+        filepath = f"data/pacs/labels/{domain}_{ds_type}.txt"
         f = open(filepath, 'r')
         lines = f.readlines()
         f.close()
@@ -31,6 +31,7 @@ class PACS_dataset(torch.utils.data.Dataset):
     def __init__(self, dataset_type, domain_list, transforms, augmentations=None):
         self.images = []
         self.labels = torch.Tensor([])
+        self.domain_list = domain_list
         for domain in domain_list:
             imgs, lbls = get_paths_and_labels(dataset_type, domain)
             self.images += imgs
@@ -46,7 +47,7 @@ class PACS_dataset(torch.utils.data.Dataset):
         img_name = self.images[idx]
         label = self.labels[idx]
         
-        image = Image.open(f"../../data/pacs/images/{img_name}") 
+        image = Image.open(f"data/pacs/images/{img_name}") 
 
         if self.augmentations:
             sample = {
