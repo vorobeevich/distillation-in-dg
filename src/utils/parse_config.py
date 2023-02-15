@@ -48,22 +48,10 @@ def parse_config(args: argparse.Namespace):
     # init device
     config["device"] = get_device()
 
-    # init model params
-    config["model"] = init_object(torchvision.models, config_yaml["model"])
-    config["model"].fc = nn.Linear(*config_yaml["last_layer"])
-    
-    # prepare for GPU training
-    config["model"].to(config["device"])
-    
-    # init optimizer with model params
+    # copy params
+    config["model"] = config_yaml["model"]
     config["optimizer"] = config_yaml["optimizer"]
-    config["optimizer"]["kwargs"].update(params=config["model"].parameters())
-    config["optimizer"] = init_object(torch.optim, config["optimizer"])
-    
-    # init scheduler with optimizer params
     config["scheduler"] = config_yaml["scheduler"]
-    config["scheduler"]["kwargs"].update(optimizer=config["optimizer"])
-    config["scheduler"] = init_object(torch.optim.lr_scheduler, config_yaml["scheduler"])
     
     # init augmentations (to train images) and transforms (to train and test images)
     config["dataset"]["kwargs"]["augmentations"] = torchvision.transforms.Compose(init_object_list(torchvision.transforms, config_yaml["augmentations"]))

@@ -5,6 +5,7 @@ from tqdm import tqdm
 import torch.utils.data
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.models
 
 import src.datasets.PACS_dataset
 from src.utils.init_functions import init_object
@@ -43,6 +44,8 @@ class Trainer:
         train_dataset["kwargs"]["domain_list"] = [domain for domain in train_dataset["kwargs"]["domain_list"] if domain != self.domains[test_domain]]
         val_dataset["kwargs"]["domain_list"] = [domain for domain in val_dataset["kwargs"]["domain_list"] if domain != self.domains[test_domain]]
         test_dataset["kwargs"]["domain_list"] = [self.domains[test_domain]]
+        test_dataset["kwargs"]["augmentations"], val_dataset["kwargs"]["augmentations"] = None, None
+
 
         train_dataset = init_object(src.datasets.PACS_dataset, train_dataset)
         val_dataset = init_object(src.datasets.PACS_dataset, val_dataset)
@@ -73,7 +76,6 @@ class Trainer:
             accuracy += batch_true.item()
             
             pbar.set_description("Accuracy on batch %f loss on batch %f" % ((batch_true / images.shape[0]).item(), loss.item()))
-            break
 
         return accuracy / len(loader.dataset), loss_sum  / len(loader.dataset)
 
@@ -94,7 +96,7 @@ class Trainer:
                 accuracy += batch_true.item()
 
                 pbar.set_description("Accuracy on batch %f loss on batch %f" % ((batch_true / images.shape[0]).item(), loss.item()))
-                break
+
             return accuracy / len(loader.dataset), loss_sum / len(loader.dataset) 
     
     def train_model(self, test_domain, model, loss_function, optimizer, scheduler):
@@ -102,31 +104,43 @@ class Trainer:
         max_val_accuracy = 0
         for i in range(1, self.num_epochs + 1):
             train_accuracy, train_loss = self.train_epoch_model(train_loader, model, loss_function, optimizer) 
-            self.logger.log_epoch(f"train_accuracy_on_test_domain_{self.domains[test_domain]}", train_accuracy, i)
-            self.logger.log_epoch(f"train_loss_on_test_domain_{self.domains[test_domain]}", train_loss, i)
+            self.logger.log_epoch(self.domains[test_domain], 'train', 'accuracy', train_accuracy, i)
+            self.logger.log_epoch(self.domains[test_domain], 'train', 'loss', train_loss, i)
             
             val_accuracy, val_loss = self.inference_epoch_model(val_loader, model, loss_function)
-            self.logger.log_epoch(f"val_accuracy_on_test_domain_{self.domains[test_domain]}", val_accuracy, i)
-            self.logger.log_epoch(f"val_loss_on_test_domain_{self.domains[test_domain]}", val_loss, i)
+            self.logger.log_epoch(self.domains[test_domain], 'val', 'accuracy', val_accuracy, i)
+            self.logger.log_epoch(self.domains[test_domain], 'val', 'loss', val_loss, i)
             if val_accuracy > max_val_accuracy:
                 max_val_accuracy = val_accuracy
                 self.save_checkpoint(test_domain, model, optimizer, scheduler)
 
             test_accuracy, test_loss = self.inference_epoch_model(test_loader, model, loss_function)
-            self.logger.log_epoch(f"test_accuracy_on_test_domain_{self.domains[test_domain]}", test_accuracy, i)
-            self.logger.log_epoch(f"test_loss_on_test_domain_{self.domains[test_domain]}", test_loss, i)
+            self.logger.log_epoch(self.domains[test_domain], 'test', 'accuracy', test_accuracy, i)
+            self.logger.log_epoch(self.domains[test_domain], 'test', 'loss', test_loss, i)
             scheduler.step()
 
 
     def train(self):       
         for i in range(len(self.domains)):
-            model = deepcopy(self.model)
-            optimizer = deepcopy(self.optimizer)
-            scheduler = deepcopy(self.scheduler)
+            # init model params
+            model = init_object(torchvision.models, self.config["model"])
+            model.fc = nn.Linear(*self.config["last_layer"])
+            
+            # prepare for GPU training
+            model.to(self.device)
+            
+            # init optimizer with model params
+            optimizer = deepcopy(self.config["optimizer"])
+            optimizer["kwargs"].update(params=model.parameters())
+            optimizer = init_object(torch.optim, optimizer)
+            
+            # init scheduler with optimizer params
+            scheduler = deepcopy(self.config["scheduler"])
+            scheduler["kwargs"].update(optimizer=optimizer)
+            scheduler = init_object(torch.optim.lr_scheduler, scheduler)
             self.train_model(i, model, nn.CrossEntropyLoss(),  optimizer, scheduler)
 
     def save_checkpoint(self, test_domain, model, optimizer, scheduler):
-        print(self.config)
         state = {
             "model": self.config["model"]["name"],
             "state_dict": model.state_dict(),
