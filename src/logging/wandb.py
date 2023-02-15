@@ -6,11 +6,12 @@ class WandbLogger:
         self.config = config
         wandb.login()
         self.run = wandb.init(
+            entity="distillation-generalization",
             project=config["wandb_project"],
             config=config,
         )
         wandb.run.name  = config["trainer"]["run_id"]
         
 
-    def log_epoch(self, figure_name: str, value: float, num_epoch: int):
-        self.run.log({figure_name: value, "epoch": num_epoch})
+    def log_epoch(self, test_domain: str, figure_type: str, figure_name: str, value: float, num_step: int):
+        self.run.log({test_domain: {figure_type: {figure_name: value}}})
