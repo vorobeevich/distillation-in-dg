@@ -51,9 +51,9 @@ class Trainer:
         val_dataset = init_object(src.datasets.PACS_dataset, val_dataset)
         test_dataset = init_object(src.datasets.PACS_dataset, test_dataset)
 
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
-        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False, pin_memory=True, num_workers=4)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False, pin_memory=True, num_workers=4)
         return train_loader, val_loader, test_loader
 
     def train_epoch_model(self, loader, model, loss_function, optimizer):
@@ -119,7 +119,6 @@ class Trainer:
             self.logger.log_epoch(self.domains[test_domain], 'test', 'loss', test_loss, i, True)
             scheduler.step()
 
-
     def train(self):       
         for i in range(len(self.domains)):
             # init model params
@@ -142,8 +141,8 @@ class Trainer:
 
     def save_checkpoint(self, test_domain, model, optimizer, scheduler):
         state = {
-            "model": self.config["model"]["name"],
-            "state_dict": model.state_dict(),
+            "name": self.config["model"]["name"],
+            "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
             "scheduler": scheduler.state_dict(),
             "config": self.config
