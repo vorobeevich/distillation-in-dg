@@ -104,19 +104,19 @@ class Trainer:
         max_val_accuracy = 0
         for i in range(1, self.num_epochs + 1):
             train_accuracy, train_loss = self.train_epoch_model(train_loader, model, loss_function, optimizer) 
-            self.logger.log_epoch(self.domains[test_domain], 'train', 'accuracy', train_accuracy, i)
-            self.logger.log_epoch(self.domains[test_domain], 'train', 'loss', train_loss, i)
+            self.logger.log_metric(self.domains[test_domain], 'train', 'accuracy', train_accuracy, i)
+            self.logger.log_metric(self.domains[test_domain], 'train', 'loss', train_loss, i)
             
             val_accuracy, val_loss = self.inference_epoch_model(val_loader, model, loss_function)
-            self.logger.log_epoch(self.domains[test_domain], 'val', 'accuracy', val_accuracy, i)
-            self.logger.log_epoch(self.domains[test_domain], 'val', 'loss', val_loss, i)
+            self.logger.log_metric(self.domains[test_domain], 'val', 'accuracy', val_accuracy, i)
+            self.logger.log_metric(self.domains[test_domain], 'val', 'loss', val_loss, i)
             if val_accuracy > max_val_accuracy:
                 max_val_accuracy = val_accuracy
                 self.save_checkpoint(test_domain, model, optimizer, scheduler)
 
             test_accuracy, test_loss = self.inference_epoch_model(test_loader, model, loss_function)
-            self.logger.log_epoch(self.domains[test_domain], 'test', 'accuracy', test_accuracy, i)
-            self.logger.log_epoch(self.domains[test_domain], 'test', 'loss', test_loss, i, True)
+            self.logger.log_metric(self.domains[test_domain], 'test', 'accuracy', test_accuracy, i)
+            self.logger.log_metric(self.domains[test_domain], 'test', 'loss', test_loss, i)
             scheduler.step()
 
     def train(self):       
@@ -147,5 +147,5 @@ class Trainer:
             "scheduler": scheduler.state_dict(),
             "config": self.config
         }
-        path = f"{self.checkpoint_dir}checkpoint_name_{state['model']}_test_domain_{test_domain}_best.pth"
+        path = f"{self.checkpoint_dir}checkpoint_name_{state['name']}_test_domain_{self.domains[test_domain]}_best.pth"
         torch.save(state, path)
