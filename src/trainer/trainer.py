@@ -116,7 +116,7 @@ class Trainer:
 
             test_accuracy, test_loss = self.inference_epoch_model(test_loader, model, loss_function)
             self.logger.log_epoch(self.domains[test_domain], 'test', 'accuracy', test_accuracy, i)
-            self.logger.log_epoch(self.domains[test_domain], 'test', 'loss', test_loss, i)
+            self.logger.log_epoch(self.domains[test_domain], 'test', 'loss', test_loss, i, True)
             scheduler.step()
 
 

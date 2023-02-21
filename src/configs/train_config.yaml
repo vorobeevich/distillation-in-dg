@@ -32,7 +32,7 @@ scheduler:
 
 # arguments below send to trainer directly for training
 trainer: 
-  num_epochs: 10
+  num_epochs: 100
   batch_size: 64
   dataset: 
     name: PACS_dataset
