@@ -2,6 +2,8 @@ import os
 from copy import deepcopy
 from tqdm import tqdm
 
+import pandas as pd
+
 import torch.utils.data
 import torch.nn as nn
 import torch.nn.functional as F
@@ -76,7 +78,7 @@ class Trainer:
             accuracy += batch_true.item()
             
             pbar.set_description("Accuracy on batch %f loss on batch %f" % ((batch_true / images.shape[0]).item(), loss.item()))
-
+            break
         return accuracy / len(loader.dataset), loss_sum  / len(loader.dataset)
 
     def inference_epoch_model(self, loader, model, loss_function):
@@ -96,30 +98,40 @@ class Trainer:
                 accuracy += batch_true.item()
 
                 pbar.set_description("Accuracy on batch %f loss on batch %f" % ((batch_true / images.shape[0]).item(), loss.item()))
-
+                break
             return accuracy / len(loader.dataset), loss_sum / len(loader.dataset) 
     
     def train_model(self, test_domain, model, loss_function, optimizer, scheduler):
         train_loader, val_loader, test_loader = self.create_loaders(test_domain)
         max_val_accuracy = 0
+        max_train_accuracy, max_val_accuracy, max_test_accuracy = 0, 0, 0
+        min_train_loss, min_val_loss, min_test_loss = 1, 1, 1
         for i in range(1, self.num_epochs + 1):
-            train_accuracy, train_loss = self.train_epoch_model(train_loader, model, loss_function, optimizer) 
+            train_accuracy, train_loss = self.train_epoch_model(train_loader, model, loss_function, optimizer)
+            max_train_accuracy, min_train_loss = max(max_train_accuracy, train_accuracy), min(min_train_loss, train_loss)
             self.logger.log_metric(self.domains[test_domain], 'train', 'accuracy', train_accuracy, i)
             self.logger.log_metric(self.domains[test_domain], 'train', 'loss', train_loss, i)
-            
+
             val_accuracy, val_loss = self.inference_epoch_model(val_loader, model, loss_function)
+            max_val_accuracy, min_val_loss = max(max_val_accuracy, val_accuracy), min(min_val_loss, val_loss)
             self.logger.log_metric(self.domains[test_domain], 'val', 'accuracy', val_accuracy, i)
             self.logger.log_metric(self.domains[test_domain], 'val', 'loss', val_loss, i)
+
             if val_accuracy > max_val_accuracy:
                 max_val_accuracy = val_accuracy
                 self.save_checkpoint(test_domain, model, optimizer, scheduler)
 
             test_accuracy, test_loss = self.inference_epoch_model(test_loader, model, loss_function)
+            max_test_accuracy, min_test_loss = max(max_test_accuracy, test_accuracy), min(min_test_loss, test_loss)
             self.logger.log_metric(self.domains[test_domain], 'test', 'accuracy', test_accuracy, i)
             self.logger.log_metric(self.domains[test_domain], 'test', 'loss', test_loss, i)
             scheduler.step()
+        return max_test_accuracy, max_val_accuracy, max_test_accuracy, \
+                min_train_loss, min_val_loss, min_test_loss
 
     def train(self):       
+        train_accuracy, val_accuracy, test_accuracy = [], [], []
+        train_loss, val_loss, test_loss = [], [], []
         for i in range(len(self.domains)):
             # init model params
             model = init_object(torchvision.models, self.config["model"])
@@ -137,8 +149,25 @@ class Trainer:
             scheduler = deepcopy(self.config["scheduler"])
             scheduler["kwargs"].update(optimizer=optimizer)
             scheduler = init_object(torch.optim.lr_scheduler, scheduler)
-            self.train_model(i, model, nn.CrossEntropyLoss(),  optimizer, scheduler)
 
+            train_ac, val_ac, test_ac, train_l, val_l, test_l  = \
+                    self.train_model(i, model, nn.CrossEntropyLoss(),  optimizer, scheduler)
+            train_accuracy.append(train_ac)
+            val_accuracy.append(val_ac)
+            test_accuracy.append(test_ac)
+            train_loss.append(train_l)
+            val_loss.append(val_l)
+            test_loss.append(test_l)
+        metrics = {
+            'train_accuracy' : train_accuracy,
+            'val_accuracy' : val_accuracy,
+            'test_accuracy' : test_accuracy,
+            'train_loss' : train_loss,
+            'val_loss' : val_loss,
+            'test_loss' : test_loss,
+        }
+        metrics = pd.DataFrame(metrics, index=self.domains)
+        self.logger.log_table(metrics)
     def save_checkpoint(self, test_domain, model, optimizer, scheduler):
         state = {
             "name": self.config["model"]["name"],

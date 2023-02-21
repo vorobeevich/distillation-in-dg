@@ -16,4 +16,5 @@ class WandbLogger:
         self.run.log({name:  value, f"{name}.epoch" : num_step})
 
     def log_table(self, df):
-        self.run.log({"Results": wandb.Table(daatframe=df)})
+        print(df)
+        self.run.log({"Results": wandb.Table(dataframe=df)})
