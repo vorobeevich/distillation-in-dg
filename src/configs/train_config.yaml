@@ -32,13 +32,13 @@ scheduler:
 
 # arguments below send to trainer directly for training
 trainer: 
-  num_epochs: 2
-  batch_size: 64
+  num_epochs: 100
+  batch_size: 512
   dataset: 
     name: PACS_dataset
     kwargs: 
       domain_list: ["art_painting", "photo", "sketch", "cartoon"]
-  run_id: null
+  run_id: baseline_teacher_check
 
 # loging params
 wandb_project: distillation-generalization

@@ -78,7 +78,7 @@ class Trainer:
             accuracy += batch_true.item()
             
             pbar.set_description("Accuracy on batch %f loss on batch %f" % ((batch_true / images.shape[0]).item(), loss.item()))
-            break
+
         return accuracy / len(loader.dataset), loss_sum  / len(loader.dataset)
 
     def inference_epoch_model(self, loader, model, loss_function):
@@ -98,14 +98,16 @@ class Trainer:
                 accuracy += batch_true.item()
 
                 pbar.set_description("Accuracy on batch %f loss on batch %f" % ((batch_true / images.shape[0]).item(), loss.item()))
-                break
-            return accuracy / len(loader.dataset), loss_sum / len(loader.dataset) 
+
+
+        return accuracy / len(loader.dataset), loss_sum / len(loader.dataset) 
     
     def train_model(self, test_domain, model, loss_function, optimizer, scheduler):
         train_loader, val_loader, test_loader = self.create_loaders(test_domain)
-        max_val_accuracy = 0
+
         max_train_accuracy, max_val_accuracy, max_test_accuracy = 0, 0, 0
         min_train_loss, min_val_loss, min_test_loss = 1, 1, 1
+
         for i in range(1, self.num_epochs + 1):
             train_accuracy, train_loss = self.train_epoch_model(train_loader, model, loss_function, optimizer)
             max_train_accuracy, min_train_loss = max(max_train_accuracy, train_accuracy), min(min_train_loss, train_loss)
@@ -125,8 +127,10 @@ class Trainer:
             max_test_accuracy, min_test_loss = max(max_test_accuracy, test_accuracy), min(min_test_loss, test_loss)
             self.logger.log_metric(self.domains[test_domain], 'test', 'accuracy', test_accuracy, i)
             self.logger.log_metric(self.domains[test_domain], 'test', 'loss', test_loss, i)
+
             scheduler.step()
-        return max_test_accuracy, max_val_accuracy, max_test_accuracy, \
+
+        return max_train_accuracy, max_val_accuracy, max_test_accuracy, \
                 min_train_loss, min_val_loss, min_test_loss
 
     def train(self):       
