@@ -40,7 +40,9 @@ scheduler:
     T_max: 100
 num_epochs: 500
 batch_size: 64
+temperature: 5
 
-run_id: null
+run_id: baseline_distillation_check
+run_id_teacher: baseline_teacher_check
 
 wandb_project: distillation-generalization

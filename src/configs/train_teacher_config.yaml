@@ -37,6 +37,6 @@ scheduler:
 num_epochs: 100
 batch_size: 64
 
-run_id: null
+run_id: baseline_teacher_check
 
 wandb_project: distillation-generalization

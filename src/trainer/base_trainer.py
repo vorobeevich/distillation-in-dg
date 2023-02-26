@@ -26,6 +26,7 @@ class BaseTrainer:
         self.dataset = dataset
         self.domains = dataset["kwargs"]["domain_list"]
 
+        self.loss_function = nn.CrossEntropyLoss()
         self.optimizer_config = optimizer_config
         self.scheduler_config = scheduler_config
 
@@ -41,6 +42,7 @@ class BaseTrainer:
         self.checkpoint_dir += f"{self.run_id}/"
         if not os.path.exists(self.checkpoint_dir):
             os.makedirs(self.checkpoint_dir)
+
 
     def create_loaders(self, test_domain):
         train_dataset, val_dataset, test_dataset = deepcopy(self.dataset), deepcopy(self.dataset), deepcopy(self.dataset) 
@@ -61,7 +63,7 @@ class BaseTrainer:
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False, pin_memory=True, num_workers=4)
         return train_loader, val_loader, test_loader
 
-    def train_epoch_model(self, loader, loss_function):
+    def train_epoch_model(self, loader):
         self.model.train()
         accuracy = 0 
         loss_sum = 0
@@ -70,7 +72,7 @@ class BaseTrainer:
             images, labels = batch["image"], batch["label"]
             images, labels = images.to(self.device).float(), labels.to(self.device).long()
             logits = self.model(images)
-            loss = loss_function(logits, labels)
+            loss = self.loss_function(logits, labels)
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -84,7 +86,7 @@ class BaseTrainer:
 
         return accuracy / len(loader.dataset), loss_sum  / len(loader.dataset)
 
-    def inference_epoch_model(self, loader, loss_function):
+    def inference_epoch_model(self, loader):
         with torch.inference_mode():
             self.model.eval()
             accuracy = 0 
@@ -93,7 +95,7 @@ class BaseTrainer:
             for batch in pbar:
                 images, labels = batch["image"].to(self.device), batch["label"].to(self.device).long()
                 logits = self.model(images)
-                loss = loss_function(logits, labels)
+                loss = self.loss_function(logits, labels)
                 loss_sum += loss.item() * images.shape[0]
 
                 ids = F.softmax(logits, dim=-1).argmax(dim=-1)
@@ -104,27 +106,30 @@ class BaseTrainer:
 
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset) 
 
-    def train_model(self, test_domain, loss_function):
+    def train_one_domain(self, test_domain):
+        self.model = BaseParser.init_model(self.model_config, self.device)
         train_loader, val_loader, test_loader = self.create_loaders(test_domain)
+        self.optimizer = BaseParser.init_optimizer(self.optimizer_config, self.model)
+        self.scheduler = BaseParser.init_scheduler(self.scheduler_config, self.optimizer)
 
         max_train_accuracy, max_val_accuracy, max_test_accuracy = 0, 0, 0
         min_train_loss, min_val_loss, min_test_loss = 1, 1, 1
 
         for i in range(1, self.num_epochs + 1):
-            train_accuracy, train_loss = self.train_epoch_model(train_loader, loss_function)
+            train_accuracy, train_loss = self.train_epoch_model(train_loader)
             max_train_accuracy, min_train_loss = max(max_train_accuracy, train_accuracy), min(min_train_loss, train_loss)
             self.logger.log_metric(self.domains[test_domain], 'train', 'accuracy', train_accuracy, i)
             self.logger.log_metric(self.domains[test_domain], 'train', 'loss', train_loss, i)
 
-            val_accuracy, val_loss = self.inference_epoch_model(val_loader, loss_function)
+            val_accuracy, val_loss = self.inference_epoch_model(val_loader)
             self.logger.log_metric(self.domains[test_domain], 'val', 'accuracy', val_accuracy, i)
             self.logger.log_metric(self.domains[test_domain], 'val', 'loss', val_loss, i)
             if val_accuracy > max_val_accuracy:
                 max_val_accuracy = val_accuracy
-                self.save_checkpoint(test_domain, model, optimizer, scheduler)
+                self.save_checkpoint(test_domain)
             max_val_accuracy, min_val_loss = max(max_val_accuracy, val_accuracy), min(min_val_loss, val_loss)
 
-            test_accuracy, test_loss = self.inference_epoch_model(test_loader, loss_function)
+            test_accuracy, test_loss = self.inference_epoch_model(test_loader)
             max_test_accuracy, min_test_loss = max(max_test_accuracy, test_accuracy), min(min_test_loss, test_loss)
             self.logger.log_metric(self.domains[test_domain], 'test', 'accuracy', test_accuracy, i)
             self.logger.log_metric(self.domains[test_domain], 'test', 'loss', test_loss, i)
@@ -138,12 +143,8 @@ class BaseTrainer:
         train_accuracy, val_accuracy, test_accuracy = [], [], []
         train_loss, val_loss, test_loss = [], [], []
         for i in range(len(self.domains)):
-            self.model = BaseParser.init_model(self.model_config, self.device)
-            self.optimizer = BaseParser.init_optimizer(self.optimizer_config, self.model)
-            self.scheduler = BaseParser.init_scheduler(self.scheduler_config, self.optimizer)
-
             train_ac, val_ac, test_ac, train_l, val_l, test_l  = \
-                    self.train_model(i, nn.CrossEntropyLoss())
+                    self.train_one_domain(i)
             for metric_list, metric_value in zip([train_accuracy, val_accuracy, test_accuracy, 
                         train_loss, val_loss, test_loss], [train_ac, val_ac, test_ac, train_l, val_l, test_l]):
                 metric_list.append(metric_value)
@@ -158,12 +159,12 @@ class BaseTrainer:
         metrics = pd.DataFrame(metrics, index=self.domains)
         self.logger.log_table(metrics)
 
-    def save_checkpoint(self, test_domain, model, optimizer, scheduler):
+    def save_checkpoint(self, test_domain):
         state = {
             "name": self.config["model"]["name"],
-            "model": model.state_dict(),
-            "optimizer": optimizer.state_dict(),
-            "scheduler": scheduler.state_dict(),
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "scheduler": self.scheduler.state_dict(),
             "config": self.config
         }
         path = f"{self.checkpoint_dir}checkpoint_name_{state['name']}_test_domain_{self.domains[test_domain]}_best.pth"
