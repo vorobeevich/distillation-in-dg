@@ -8,7 +8,7 @@ class WandbLogger:
             entity="distillation-generalization",
             project=config["wandb_project"],
             config=config,
-            name=config["trainer"]["run_id"]
+            name=config["run_id"]
         )
 
     def log_metric(self, test_domain: str, figure_type: str, figure_name: str, value: float, num_step: int):
