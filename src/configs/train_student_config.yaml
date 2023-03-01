@@ -12,6 +12,8 @@ augmentations:
   - name: RandomResizedCrop
     kwargs: 
       size: 227
+      scale: [0.8, 1.0]
+      ratio: [0.9, 1.1]
   - name: RandomHorizontalFlip
     kwargs: {}
 transforms:

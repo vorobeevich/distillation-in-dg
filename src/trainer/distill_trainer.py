@@ -35,8 +35,8 @@ class DistillTrainer(BaseTrainer):
                 logits_teacher = self.model_teacher(images)
 
             logits = self.model(images)
-            probs_student, probs_teacher = F.log_softmax(logits, dim=-1), F.softmax(logits_teacher / self.temperature, dim=-1)
-            loss = self.loss_function(probs_student, probs_teacher)
+            probs_student, probs_teacher = F.log_softmax(logits / self.temperature, dim=-1), F.softmax(logits_teacher / self.temperature, dim=-1)
+            loss = self.loss_function(probs_student, probs_teacher) * self.temperature * self.temperature
 
             self.optimizer.zero_grad()
             loss.backward()
@@ -60,8 +60,8 @@ class DistillTrainer(BaseTrainer):
             for batch in pbar:
                 images, labels = batch["image"].to(self.device), batch["label"].to(self.device).long()
                 logits_teacher, logits = self.model_teacher(images), self.model(images)
-                probs_student, probs_teacher = F.log_softmax(logits, dim=-1), F.softmax(logits_teacher / self.temperature, dim=-1)
-                loss = self.loss_function(probs_student, probs_teacher)
+                probs_student, probs_teacher = F.log_softmax(logits / self.temperature, dim=-1), F.softmax(logits_teacher / self.temperature, dim=-1)
+                loss = self.loss_function(probs_student, probs_teacher) * self.temperature * self.temperature
                 loss_sum += loss.item() * images.shape[0]
 
                 ids = F.softmax(logits, dim=-1).argmax(dim=-1)
