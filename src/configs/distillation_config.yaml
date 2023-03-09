@@ -37,9 +37,9 @@ scheduler:
   name: CosineAnnealingLR
   kwargs:
     eta_min: 0.00003
-    T_max: 100
+    T_max: 500
 num_epochs: 500
-batch_size: 256
+batch_size: 64
 temperature: 5
 
 run_id: baseline_distillation

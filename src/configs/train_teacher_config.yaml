@@ -35,7 +35,7 @@ scheduler:
     eta_min: 0.00003
     T_max: 100
 num_epochs: 100
-batch_size: 256
+batch_size: 64
 
 run_id: baseline_teacher
 
