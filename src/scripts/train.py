@@ -2,15 +2,7 @@ import sys
 sys.path.append("./")
 
 import argparse
-
-from src.utils.fix_seed import fix_seed
-from src.parser.base_parser import BaseParser
-from src.parser.distill_parser import DistillParser
-from src.trainer.base_trainer import BaseTrainer
-from src.trainer.distill_trainer import DistillTrainer
-
-# fix random seeds for reproducibility
-fix_seed()
+import os 
 
 parser = argparse.ArgumentParser(description="Train model from config")
 
@@ -35,6 +27,19 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
+
+# set device
+os.environ["CUDA_VISIBLE_DEVICES"] = args.device
+
+from src.utils.fix_seed import fix_seed
+from src.parser.base_parser import BaseParser
+from src.parser.distill_parser import DistillParser
+from src.trainer.base_trainer import BaseTrainer
+from src.trainer.distill_trainer import DistillTrainer
+
+# fix random seeds for reproducibility
+fix_seed()
+
 if args.dist:
     trainer = DistillTrainer(**DistillParser.parse_config(args))
 else:    

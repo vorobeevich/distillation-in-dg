@@ -13,6 +13,7 @@ import torch
 from src.logging.wandb import WandbLogger
 from src.utils.get_device import get_device
 from src.utils.init_functions import init_object
+
 class BaseParser:
     """Static class (a set of methods for which inheritance is possible) for parsing command line arguments 
     and model training configuration.
@@ -27,9 +28,6 @@ class BaseParser:
             args (argparse.Namespace): args from cl parser (path to config_yaml, path to checkpoint, GPU device).
         """
 
-        # set device
-        os.environ["CUDA_VISIBLE_DEVICES"] = args.device
-    
         # read config_yaml from path
         with open(args.config, "r") as stream:
             config = yaml.safe_load(stream)
@@ -47,6 +45,9 @@ class BaseParser:
         if config["run_id"] is None:
             # use timestamp as default run-id
             config["run_id"] = datetime.now().strftime(r"%m%d_%H%M%S")
+
+        # save device id in config
+        config["device_id"] = args.device
 
         # save yaml version of config
         trainer_params["config"] = config
