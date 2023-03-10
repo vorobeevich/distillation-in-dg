@@ -45,4 +45,5 @@ temperature: 5
 run_id: baseline_distillation
 run_id_teacher: baseline_teacher
 
-wandb_project: distillation-generalization
+wandb_project: dist-gen
+wandb_entity: gegelyanec

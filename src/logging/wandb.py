@@ -5,7 +5,7 @@ class WandbLogger:
         self.config = config
         wandb.login()
         self.run = wandb.init(
-            entity="distillation-generalization",
+            entity=config["wandb_entity"],
             project=config["wandb_project"],
             config=config,
             name=config["run_id"]

@@ -39,4 +39,5 @@ batch_size: 64
 
 run_id: baseline_student
 
-wandb_project: distillation-generalization
+wandb_project: dist-gen
+wandb_entity: gegelyanec
