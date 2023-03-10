@@ -13,7 +13,7 @@ domains = ["art_painting", "cartoon", "photo", "sketch"]
 classes = ["dog", "elephant", "giraffe", "guitar", "horse", "house", "person"]
 for domain in domains:
     for label, cls in enumerate(classes):
-        files = np.array(os.listdir(f"data/pacs/images/{domain}/{cls}"))
+        files = np.array(sorted(os.listdir(f"data/pacs/images/{domain}/{cls}")))
         n = len(files)
         all_indeces = list(np.arange(n))
         # make train set
