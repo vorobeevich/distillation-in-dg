@@ -1,14 +1,9 @@
-import os
-from copy import deepcopy
 from tqdm import tqdm
-
-import pandas as pd
 
 import torch.utils.data
 import torch.nn.functional as F
 import torch.nn as nn
 
-from src.utils.init_functions import init_object
 from src.parser.base_parser import BaseParser
 from src.trainer.base_trainer import BaseTrainer
 
@@ -84,3 +79,4 @@ class DistillTrainer(BaseTrainer):
         self.model_teacher.load_state_dict(checkpoint["model"])
         for param in self.model_teacher.parameters():
             param.requires_grad = False
+        self.model_teacher.eval()
