@@ -14,7 +14,7 @@ dataset:
   name: PACS_dataset
   kwargs: 
     domain_list: ["art_painting", "photo", "sketch", "cartoon"]
-augmentations:
+augmentations: []
 transforms:
   - name: ToTensor
     kwargs: {}  
