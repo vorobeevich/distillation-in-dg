@@ -15,6 +15,11 @@ dataset:
   kwargs: 
     domain_list: ["art_painting", "photo", "sketch", "cartoon"]
 augmentations:
+  - name: RandomResizedCrop
+    kwargs: 
+      size: 227
+  - name: RandomHorizontalFlip
+    kwargs: {}
 transforms:
   - name: ToTensor
     kwargs: {}  
