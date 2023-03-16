@@ -50,8 +50,8 @@ num_epochs: 500
 batch_size: 64
 temperature: 5
 
-run_id: baseline_distillation
-run_id_teacher: baseline_teacher
+run_id: distillation_domainbed
+run_id_teacher: teacher_baseline
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec

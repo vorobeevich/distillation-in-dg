@@ -37,7 +37,7 @@ scheduler:
 num_epochs: 500
 batch_size: 64
 
-run_id: baseline_student
+run_id: student_baseline
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec
