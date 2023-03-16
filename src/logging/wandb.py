@@ -17,3 +17,6 @@ class WandbLogger:
 
     def log_table(self, df):
         self.run.log({"Results": wandb.Table(dataframe=df)})
+
+    def log_image(self, image_array, name: str):
+        self.run.log({name: wandb.Image(image_array)})
