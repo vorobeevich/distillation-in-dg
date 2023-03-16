@@ -24,11 +24,10 @@ class DistillTrainer(BaseTrainer):
         self.loss_function = nn.KLDivLoss(reduction='batchmean')
     
     def mixup_on_batch(self, images: torch.Tensor):
-        with torch.inference_mode():
-            indeces = torch.randperm(images.shape[0])
-            shuffled_images = images[indeces]
-            lamb = self.lamb.sample()
-            images = lamb * images + (1 - lamb) * shuffled_images
+        indeces = torch.randperm(images.shape[0])
+        shuffled_images = images[indeces]
+        lamb = self.lamb.sample()
+        images = lamb * images + (1 - lamb) * shuffled_images
         return images
 
     def train_epoch_model(self, loader):
