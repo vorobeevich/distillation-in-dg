@@ -25,7 +25,7 @@ augmentations:
       brightness: 0.3
       contrast: 0.3
       saturation: 0.3
-      hue : 0.3
+      hue: 0.3
   - name: RandomGrayscale
     kwargs: {}
 transforms:
