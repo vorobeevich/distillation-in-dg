@@ -34,7 +34,7 @@ class DistillTrainer(BaseTrainer):
         self.model.train()
         accuracy = 0 
         loss_sum = 0
-        pbar = tqdm(enumerate(loader), leave=True)
+        pbar = tqdm(enumerate(loader))
         for ind, batch in pbar:
             images, labels = batch["image"], batch["label"]
             images, labels = images.to(self.device).float(), labels.to(self.device).long()
@@ -58,6 +58,7 @@ class DistillTrainer(BaseTrainer):
             loss_sum += loss.item() * images.shape[0]
 
             ids = F.softmax(logits, dim=-1).argmax(dim=-1)
+            # if we use mixup then accuracy is not defined, set it to 1
             if self.mixup is not None:
                 batch_true = (ids == ids).sum()
             else: 
@@ -74,7 +75,7 @@ class DistillTrainer(BaseTrainer):
             self.model.eval()
             accuracy = 0 
             loss_sum = 0
-            pbar = tqdm(loader, leave=True)
+            pbar = tqdm(loader)
             for batch in pbar:
                 images, labels = batch["image"].to(self.device), batch["label"].to(self.device).long()
                 logits_teacher, logits = self.model_teacher(images), self.model(images)

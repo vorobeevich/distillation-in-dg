@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+from collections import defaultdict
 from tqdm import tqdm
 
 import pandas as pd
@@ -16,7 +17,8 @@ class BaseTrainer:
     """Class for training the model in the domain generalization mode.
     """
 
-    def __init__(self, config, device, model_config, optimizer_config, scheduler_config, dataset, num_epochs, batch_size, run_id, logger):
+    def __init__(self, config, device, model_config, optimizer_config, scheduler_config, 
+                dataset, num_epochs, tracking_step, batch_size, run_id, logger):
         self.config = config
 
         self.device = device
@@ -31,6 +33,7 @@ class BaseTrainer:
         self.scheduler_config = scheduler_config
 
         self.num_epochs = num_epochs
+        self.tracking_step = tracking_step
         self.batch_size = batch_size
 
         self.logger = logger
@@ -67,7 +70,7 @@ class BaseTrainer:
         self.model.train()
         accuracy = 0 
         loss_sum = 0
-        pbar = tqdm(loader, leave=True)
+        pbar = tqdm(loader)
         for batch in pbar:
             images, labels = batch["image"], batch["label"]
             images, labels = images.to(self.device).float(), labels.to(self.device).long()
@@ -83,7 +86,6 @@ class BaseTrainer:
             accuracy += batch_true.item()
 
             pbar.set_description("Accuracy on batch %f loss on batch %f" % ((batch_true / images.shape[0]).item(), loss.item()))
-
         return accuracy / len(loader.dataset), loss_sum  / len(loader.dataset)
 
     def inference_epoch_model(self, loader):
@@ -91,7 +93,7 @@ class BaseTrainer:
             self.model.eval()
             accuracy = 0 
             loss_sum = 0
-            pbar = tqdm(loader, leave=True)
+            pbar = tqdm(loader)
             for batch in pbar:
                 images, labels = batch["image"].to(self.device), batch["label"].to(self.device).long()
                 logits = self.model(images)
@@ -103,7 +105,6 @@ class BaseTrainer:
                 accuracy += batch_true.item()
 
                 pbar.set_description("Accuracy on batch %f loss on batch %f" % ((batch_true / images.shape[0]).item(), loss.item()))
-
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset) 
 
     def train_one_domain(self, test_domain):
@@ -111,53 +112,50 @@ class BaseTrainer:
         train_loader, val_loader, test_loader = self.create_loaders(test_domain)
         self.optimizer = BaseParser.init_optimizer(self.optimizer_config, self.model)
         self.scheduler = BaseParser.init_scheduler(self.scheduler_config, self.optimizer)
-
-        max_train_accuracy, max_val_accuracy, max_test_accuracy = 0, 0, 0
-        min_train_loss, min_val_loss, min_test_loss = 1, 1, 1
+        max_val_accuracy = 0
 
         for i in range(1, self.num_epochs + 1):
             train_accuracy, train_loss = self.train_epoch_model(train_loader)
-            max_train_accuracy, min_train_loss = max(max_train_accuracy, train_accuracy), min(min_train_loss, train_loss)
-            self.logger.log_metric(self.domains[test_domain], 'train', 'accuracy', train_accuracy, i)
-            self.logger.log_metric(self.domains[test_domain], 'train', 'loss', train_loss, i)
+            self.logger.log_metric(f"{self.domains[test_domain]}.train.accuracy", train_accuracy, i)
+            self.logger.log_metric(f"{self.domains[test_domain]}.train.loss", train_loss, i)
 
             val_accuracy, val_loss = self.inference_epoch_model(val_loader)
-            self.logger.log_metric(self.domains[test_domain], 'val', 'accuracy', val_accuracy, i)
-            self.logger.log_metric(self.domains[test_domain], 'val', 'loss', val_loss, i)
+            self.logger.log_metric(f"{self.domains[test_domain]}.val.accuracy", val_accuracy, i)
+            self.logger.log_metric(f"{self.domains[test_domain]}.val.loss", val_loss, i)
             if val_accuracy > max_val_accuracy:
                 max_val_accuracy = val_accuracy
                 self.save_checkpoint(test_domain)
-            max_val_accuracy, min_val_loss = max(max_val_accuracy, val_accuracy), min(min_val_loss, val_loss)
 
-            test_accuracy, test_loss = self.inference_epoch_model(test_loader)
-            max_test_accuracy, min_test_loss = max(max_test_accuracy, test_accuracy), min(min_test_loss, test_loss)
-            self.logger.log_metric(self.domains[test_domain], 'test', 'accuracy', test_accuracy, i)
-            self.logger.log_metric(self.domains[test_domain], 'test', 'loss', test_loss, i)
+            if i % self.tracking_step == 0:
+                test_accuracy, test_loss = self.inference_epoch_model(test_loader)
+                self.logger.log_metric(f"{self.domains[test_domain]}.test.accuracy", test_accuracy, i)
+                self.logger.log_metric(f"{self.domains[test_domain]}.test.loss", test_loss, i)
 
             self.scheduler.step()
 
-        return max_train_accuracy, max_val_accuracy, max_test_accuracy, \
-                min_train_loss, min_val_loss, min_test_loss
+        self.load_checkpoint(test_domain)
+        metrics = dict()
+        metrics["train_accuracy"], metrics["train_loss"] = self.train_epoch_model(train_loader)
+        metrics["val_accuracy"], metrics["val_loss"] = self.inference_epoch_model(val_loader)
+        metrics["test_accuracy"], metrics["test_loss"] = self.inference_epoch_model(test_loader)
+        return metrics
 
     def train(self):       
-        train_accuracy, val_accuracy, test_accuracy = [], [], []
-        train_loss, val_loss, test_loss = [], [], []
+        # log all info
+        all_metrics = defaultdict(list)
         for i in range(len(self.domains)):
-            train_ac, val_ac, test_ac, train_l, val_l, test_l  = \
-                    self.train_one_domain(i)
-            for metric_list, metric_value in zip([train_accuracy, val_accuracy, test_accuracy, 
-                        train_loss, val_loss, test_loss], [train_ac, val_ac, test_ac, train_l, val_l, test_l]):
-                metric_list.append(metric_value)
-        metrics = {
-            'train_accuracy' : train_accuracy,
-            'val_accuracy' : val_accuracy,
-            'test_accuracy' : test_accuracy,
-            'train_loss' : train_loss,
-            'val_loss' : val_loss,
-            'test_loss' : test_loss,
-        }
-        metrics = pd.DataFrame(metrics, index=self.domains)
-        self.logger.log_table(metrics)
+            metrics = self.train_one_domain(i)
+            for metric in metrics:
+                all_metrics[metric].append(metrics[metric])
+        all_metrics["domain"] = self.domains
+        self.logger.log_table("all_metrics", pd.DataFrame(all_metrics))
+        
+        # log only val and train accuracies
+        accuracy_metrics = dict()
+        for ind, domain in enumerate(self.domains):
+            accuracy_metrics[f"{domain}_val"] = all_metrics["val_accuracy"][ind]
+            accuracy_metrics[f"{domain}_test"] = all_metrics["test_accuracy"][ind]
+        self.logger.log_table("results", pd.DataFrame(accuracy_metrics, index=[1]))
 
     def save_checkpoint(self, test_domain):
         state = {
@@ -169,3 +167,10 @@ class BaseTrainer:
         }
         path = f"{self.checkpoint_dir}checkpoint_name_{state['name']}_test_domain_{self.domains[test_domain]}_best.pth"
         torch.save(state, path)
+
+    def load_checkpoint(self, test_domain):
+        self.model = BaseParser.init_model(self.model_config, self.device)
+        model_path = f"saved/{self.run_id}/checkpoint_name_{self.model_config['name']}"
+        model_path += f"_test_domain_{self.domains[test_domain]}_best.pth"
+        checkpoint = torch.load(model_path)
+        self.model.load_state_dict(checkpoint["model"])
