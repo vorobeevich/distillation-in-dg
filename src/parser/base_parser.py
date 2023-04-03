@@ -1,4 +1,3 @@
-import os
 import yaml
 import argparse
 from datetime import datetime
@@ -10,6 +9,8 @@ import torchvision.transforms
 import torch.nn as nn
 import torch
 
+from src.utils.split_data import split_pacs
+from src.utils.fix_seed import fix_seed
 from src.logging.wandb import WandbLogger
 from src.utils.get_device import get_device
 from src.utils.init_functions import init_object
@@ -31,6 +32,13 @@ class BaseParser:
         # read config_yaml from path
         with open(args.config, "r") as stream:
             config = yaml.safe_load(stream)
+
+        # fix random seed for reproducibility
+        fix_seed(config["seed"])
+
+        # split data on train and test
+        if config["dataset"]["name"] == "PACS_dataset":
+            split_pacs()
 
         # init params for trainer
         trainer_params = dict()
