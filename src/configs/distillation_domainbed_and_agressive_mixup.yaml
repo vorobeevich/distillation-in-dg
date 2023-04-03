@@ -1,0 +1,58 @@
+model: 
+  name: resnet18
+  kwargs:
+    weights: ResNet18_Weights.IMAGENET1K_V1
+  last_layer: [512, 7]
+
+model_teacher: 
+  name: resnet34
+  kwargs:
+    weights: ResNet34_Weights.IMAGENET1K_V1
+  last_layer: [512, 7]
+
+dataset: 
+  name: PACS_dataset
+  kwargs: 
+    domain_list: ["art_painting", "photo", "sketch", "cartoon"]
+augmentations:
+  - name: RandomResizedCrop
+    kwargs: 
+      size: 227
+  - name: RandomHorizontalFlip
+    kwargs: {}
+  - name: ColorJitter
+    kwargs: 
+      brightness: 0.3
+      contrast: 0.3
+      saturation: 0.3
+      hue: 0.3
+  - name: RandomGrayscale
+    kwargs: {}
+transforms:
+  - name: ToTensor
+    kwargs: {}  
+  - name: Normalize
+    kwargs:
+      mean: [0.5, 0.5, 0.5]
+      std: [0.5, 0.5, 0.5]
+mixup: 1
+optimizer:
+  name: SGD
+  kwargs:
+    lr: 0.003
+    momentum: 0.9
+scheduler:
+  name: CosineAnnealingLR
+  kwargs:
+    eta_min: 0.00003
+    T_max: 500
+num_epochs: 500
+batch_size: 64
+seed: 2023
+temperature: 5
+
+run_id: distillation_domainbed_and_agressive_mixup
+run_id_teacher: teacher_baseline
+
+wandb_project: dist-gen
+wandb_entity: gegelyanec
