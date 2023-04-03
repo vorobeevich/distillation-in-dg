@@ -36,6 +36,7 @@ scheduler:
     T_max: 100
 num_epochs: 100
 batch_size: 64
+seed: 2023
 
 run_id: teacher_baseline
 
