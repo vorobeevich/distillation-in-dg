@@ -44,7 +44,7 @@ class BaseParser:
         trainer_params = dict()
 
         # send some params directly to trainer
-        for param in ["dataset", "num_epochs", "batch_size", "run_id"]:
+        for param in ["dataset", "num_epochs", "batch_size", "run_id", "tracking_step"]:
             trainer_params[param] = config[param]
         for param in ["model", "optimizer", "scheduler"]:
             trainer_params[f"{param}_config"] = config[param]
@@ -65,7 +65,7 @@ class BaseParser:
 
         # init device for training on it
         trainer_params["device"] = get_device()
-    
+
         # init augmentations (for train images) and transforms (for train and test images)
         trainer_params["dataset"]["kwargs"]["augmentations"] = torchvision.transforms.Compose(
             [init_object(torchvision.transforms, obj_config) for obj_config in config["augmentations"]]
@@ -81,12 +81,12 @@ class BaseParser:
         # init model params
         model = init_object(torchvision.models, config)
         model.fc = nn.Linear(*config["last_layer"])
-        
+
         # prepare for GPU training
         model.to(device)
 
         return model
-    
+
     @staticmethod
     def init_optimizer(config, model):
         # make deepcopy to not corrupt dict

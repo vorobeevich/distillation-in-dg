@@ -35,6 +35,7 @@ scheduler:
     eta_min: 0.00003
     T_max: 100
 num_epochs: 100
+tracking_step: 10
 batch_size: 64
 seed: 2023
 

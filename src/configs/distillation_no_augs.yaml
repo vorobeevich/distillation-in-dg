@@ -34,6 +34,7 @@ scheduler:
     eta_min: 0.00003
     T_max: 500
 num_epochs: 500
+tracking_step: 50
 batch_size: 64
 seed: 2023
 temperature: 5
