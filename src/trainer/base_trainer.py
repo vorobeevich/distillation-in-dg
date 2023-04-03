@@ -135,7 +135,7 @@ class BaseTrainer:
 
         self.load_checkpoint(test_domain)
         metrics = dict()
-        metrics["train_accuracy"], metrics["train_loss"] = self.train_epoch_model(train_loader)
+        metrics["train_accuracy"], metrics["train_loss"] = self.inference_epoch_model(train_loader)
         metrics["val_accuracy"], metrics["val_loss"] = self.inference_epoch_model(val_loader)
         metrics["test_accuracy"], metrics["test_loss"] = self.inference_epoch_model(test_loader)
         return metrics
