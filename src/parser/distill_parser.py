@@ -12,7 +12,7 @@ class DistillParser(BaseParser):
 
     @staticmethod
     def parse_config(args: argparse.Namespace) -> dict[str, tp.Any]:
-        trainer_params = super.parse_config(args)
+        trainer_params = BaseParser.parse_config(args)
         # read config_yaml from path
         with open(args.config, "r") as stream:
             config = yaml.safe_load(stream)

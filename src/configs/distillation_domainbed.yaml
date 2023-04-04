@@ -35,7 +35,7 @@ transforms:
     kwargs:
       mean: [0.5, 0.5, 0.5]
       std: [0.5, 0.5, 0.5]
-
+mixup: null
 optimizer:
   name: SGD
   kwargs:

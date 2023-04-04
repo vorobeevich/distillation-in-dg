@@ -36,8 +36,9 @@ class DistillTrainer(BaseTrainer):
         self.model.train()
         accuracy = 0
         loss_sum = 0
-        pbar = tqdm(enumerate(loader))
-        for ind, batch in pbar:
+        pbar = tqdm(loader)
+        first_batch = True
+        for batch in pbar:
             images, labels = batch["image"], batch["label"]
             images, labels = images.to(
                 self.device).float(), labels.to(
@@ -45,10 +46,10 @@ class DistillTrainer(BaseTrainer):
 
             if self.mixup is not None:
                 images = self.mixup_on_batch(images)
-                if ind == 0:
+                if first_batch:
                     grid = make_grid(images, nrow=8)
                     self.logger.log_image(grid, "Mixup_batch")
-
+                    first_batch = False
             with torch.inference_mode():
                 logits_teacher = self.model_teacher(images)
 
