@@ -1,8 +1,12 @@
+import os
+from src.trainer.distill_trainer import DistillTrainer
+from src.trainer.base_trainer import BaseTrainer
+from src.parser.distill_parser import DistillParser
+from src.parser.base_parser import BaseParser
+import argparse
 import sys
 sys.path.append("./")
 
-import argparse
-import os 
 
 parser = argparse.ArgumentParser(description="Train model from config")
 
@@ -31,14 +35,10 @@ args = parser.parse_args()
 # set device before imports (https://github.com/pytorch/pytorch/issues/9158)
 os.environ["CUDA_VISIBLE_DEVICES"] = args.device
 
-from src.parser.base_parser import BaseParser
-from src.parser.distill_parser import DistillParser
-from src.trainer.base_trainer import BaseTrainer
-from src.trainer.distill_trainer import DistillTrainer
 
 # parse args
 if args.dist:
     trainer = DistillTrainer(**DistillParser.parse_config(args))
-else:    
+else:
     trainer = BaseTrainer(**BaseParser.parse_config(args))
 trainer.train()

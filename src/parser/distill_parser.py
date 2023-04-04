@@ -3,8 +3,10 @@ import argparse
 import typing as tp
 
 from src.parser.base_parser import BaseParser
+
+
 class DistillParser(BaseParser):
-    """Static class (a set of methods for which inheritance is possible) for parsing command line arguments 
+    """Static class (a set of methods for which inheritance is possible) for parsing command line arguments
     and model training configuration.
     """
 

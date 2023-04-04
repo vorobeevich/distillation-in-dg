@@ -1,5 +1,6 @@
 import torch
 
+
 def get_device(gpu_usage: bool = True) -> torch.device:
     """Return the GPU device on which the code will run (if gpu_usage), otherwise the code will be run on the CPU.
 

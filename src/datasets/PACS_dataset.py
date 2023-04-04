@@ -1,7 +1,9 @@
 import torch
 from PIL import Image
 
-def get_paths_and_labels(dataset_types: list[str], domain: str) -> tuple[list[str], torch.Tensor]:
+
+def get_paths_and_labels(
+        dataset_types: list[str], domain: str) -> tuple[list[str], torch.Tensor]:
     """Return list of images paths for a given type of the dataset.
 
     Args:
@@ -22,12 +24,14 @@ def get_paths_and_labels(dataset_types: list[str], domain: str) -> tuple[list[st
         lines = [l.split() for l in lines]
         cur_paths, cur_labels = zip(*lines)
         cur_labels = [int(l) for l in cur_labels]
-        paths += cur_paths 
-        labels += cur_labels 
+        paths += cur_paths
+        labels += cur_labels
     return paths, torch.Tensor(labels)
 
+
 class PACS_dataset(torch.utils.data.Dataset):
-    def __init__(self, dataset_type, domain_list, transforms, augmentations=None):
+    def __init__(self, dataset_type, domain_list,
+                 transforms, augmentations=None):
         self.images = []
         self.labels = torch.Tensor([])
         self.domain_list = domain_list
@@ -35,18 +39,18 @@ class PACS_dataset(torch.utils.data.Dataset):
             imgs, lbls = get_paths_and_labels(dataset_type, domain)
             self.images += imgs
             self.labels = torch.cat((self.labels, lbls))
-        
+
         self.transforms = transforms
         self.augmentations = augmentations
 
     def __len__(self):
         return len(self.images)
 
-    def __getitem__(self, idx):        
+    def __getitem__(self, idx):
         img_name = self.images[idx]
         label = self.labels[idx]
-        
-        image = Image.open(img_name) 
+
+        image = Image.open(img_name)
 
         if self.augmentations:
             sample = {

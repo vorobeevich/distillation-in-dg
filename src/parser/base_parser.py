@@ -15,14 +15,15 @@ from src.logging.wandb import WandbLogger
 from src.utils.get_device import get_device
 from src.utils.init_functions import init_object
 
+
 class BaseParser:
-    """Static class (a set of methods for which inheritance is possible) for parsing command line arguments 
+    """Static class (a set of methods for which inheritance is possible) for parsing command line arguments
     and model training configuration.
     """
 
     @staticmethod
     def parse_config(args: argparse.Namespace) -> dict[str, tp.Any]:
-        """Parse command line parameters and config_yaml parameters (dataset, model architecture, 
+        """Parse command line parameters and config_yaml parameters (dataset, model architecture,
         training parameters, augmentations, etc).
 
         Args:
@@ -44,7 +45,8 @@ class BaseParser:
         trainer_params = dict()
 
         # send some params directly to trainer
-        for param in ["dataset", "num_epochs", "batch_size", "run_id", "tracking_step"]:
+        for param in ["dataset", "num_epochs",
+                      "batch_size", "run_id", "tracking_step"]:
             trainer_params[param] = config[param]
         for param in ["model", "optimizer", "scheduler"]:
             trainer_params[f"{param}_config"] = config[param]
@@ -60,18 +62,21 @@ class BaseParser:
         # save yaml version of config
         trainer_params["config"] = config
 
-        # init wandb for logging    
+        # init wandb for logging
         trainer_params["logger"] = WandbLogger(config)
 
         # init device for training on it
         trainer_params["device"] = get_device()
 
-        # init augmentations (for train images) and transforms (for train and test images)
+        # init augmentations (for train images) and transforms (for train and
+        # test images)
         trainer_params["dataset"]["kwargs"]["augmentations"] = torchvision.transforms.Compose(
-            [init_object(torchvision.transforms, obj_config) for obj_config in config["augmentations"]]
+            [init_object(torchvision.transforms, obj_config)
+             for obj_config in config["augmentations"]]
         )
         trainer_params["dataset"]["kwargs"]["transforms"] = torchvision.transforms.Compose(
-            [init_object(torchvision.transforms, obj_config) for obj_config in config["transforms"]]
+            [init_object(torchvision.transforms, obj_config)
+             for obj_config in config["transforms"]]
         )
 
         return trainer_params

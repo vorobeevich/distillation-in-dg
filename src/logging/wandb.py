@@ -1,6 +1,7 @@
 import wandb
 import pandas as pd
 
+
 class WandbLogger:
     def __init__(self, config):
         self.config = config
@@ -13,7 +14,7 @@ class WandbLogger:
         )
 
     def log_metric(self, name: str, value: float, num_step: int):
-        self.run.log({name:  value, f"{name}.epoch" : num_step})
+        self.run.log({name: value, f"{name}.epoch": num_step})
 
     def log_table(self, name: str, df: pd.DataFrame):
         self.run.log({name: wandb.Table(dataframe=df)})
