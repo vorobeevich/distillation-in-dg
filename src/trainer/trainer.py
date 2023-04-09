@@ -34,8 +34,9 @@ class Trainer:
         self.optimizer_config = optimizer_config
         self.scheduler_config = scheduler_config
         self.swad_config = swad_config
-        self.swad_config["average_begin"] = False
-        self.swad_config["average_finish"] = False
+        if self.swad_config is not None:
+            self.swad_config["average_begin"] = False
+            self.swad_config["average_finish"] = False
 
         self.num_epochs = num_epochs
         self.tracking_step = tracking_step
