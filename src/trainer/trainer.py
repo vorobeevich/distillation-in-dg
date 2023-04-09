@@ -236,7 +236,7 @@ class Trainer:
                             self.swad_config["average_finish"] = True
 
         print("Classic model: ", self.inference_epoch_model(test_loader))
-        self.model = final_model.to(self.device)
+        self.model = final_model.model.to(self.device)
         print("SWAD model: ", self.inference_epoch_model(test_loader))
         self.save_checkpoint(test_domain)
 
