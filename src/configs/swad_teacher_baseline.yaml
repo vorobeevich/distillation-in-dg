@@ -44,9 +44,9 @@ seed: 2023
 
 swad:
   n_converge: 3
-  n_tolerance: 3
+  n_tolerance: 6
   tolerance_ratio: 1.3
-  num_iterations: 5000
+  num_iterations: 500
   frequency: 100
 
 run_id: teacher_baseline
