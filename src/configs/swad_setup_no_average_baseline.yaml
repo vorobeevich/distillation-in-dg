@@ -1,14 +1,8 @@
 model: 
-  name: resnet18
+  name: resnet50
   kwargs:
-    weights: ResNet18_Weights.IMAGENET1K_V1
-  last_layer: [512, 7]
-
-model_teacher: 
-  name: resnet34
-  kwargs:
-    weights: ResNet34_Weights.IMAGENET1K_V1
-  last_layer: [512, 7]
+    weights: ResNet50_Weights.IMAGENET1K_V1
+  last_layer: [2048, 7]
 
 dataset: 
   name: PACS_dataset
@@ -18,6 +12,8 @@ augmentations:
   - name: RandomResizedCrop
     kwargs: 
       size: 227
+      scale: [0.8, 1.0]
+      ratio: [0.9, 1.1]
   - name: RandomHorizontalFlip
     kwargs: {}
   - name: ColorJitter
@@ -35,27 +31,20 @@ transforms:
     kwargs:
       mean: [0.5, 0.5, 0.5]
       std: [0.5, 0.5, 0.5]
-mixup: null
+
 optimizer:
-  name: SGD
+  name: Adam
   kwargs:
-    lr: 0.003
-    momentum: 0.9
-scheduler:
-  name: CosineAnnealingLR
-  kwargs:
-    eta_min: 0.00003
-    T_max: 500
-num_epochs: 500
-tracking_step: 50
+    lr: 0.00005
+scheduler: null
+num_epochs: 50
+tracking_step: 5
 batch_size: 64
 seed: 2023
-temperature: 5
 
 swad: null
 
-run_id: distillation_domainbed
-run_id_teacher: teacher_baseline
+run_id: swad_setup_no_average_baseline
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec

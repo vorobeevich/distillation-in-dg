@@ -39,6 +39,8 @@ batch_size: 64
 seed: 2023
 temperature: 5
 
+swad: null
+
 run_id: distillation_no_augs
 run_id_teacher: teacher_baseline
 

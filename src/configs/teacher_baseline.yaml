@@ -39,6 +39,8 @@ tracking_step: 10
 batch_size: 64
 seed: 2023
 
+swad: null
+
 run_id: teacher_baseline
 
 wandb_project: dist-gen
