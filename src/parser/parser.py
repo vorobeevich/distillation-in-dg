@@ -16,7 +16,7 @@ from src.utils.get_device import get_device
 from src.utils.init_functions import init_object
 
 
-class BaseParser:
+class Parser:
     """Static class (a set of methods for which inheritance is possible) for parsing command line arguments
     and model training configuration.
     """
@@ -48,7 +48,7 @@ class BaseParser:
         for param in ["dataset", "num_epochs",
                       "batch_size", "run_id", "tracking_step"]:
             trainer_params[param] = config[param]
-        for param in ["model", "optimizer", "scheduler"]:
+        for param in ["model", "optimizer", "scheduler", "swad"]:
             trainer_params[f"{param}_config"] = config[param]
 
         # init run_id
@@ -105,6 +105,8 @@ class BaseParser:
 
     @staticmethod
     def init_scheduler(config, optimizer):
+        if config is None:
+            return None
         # make deepcopy to not corrupt dict
         scheduler = deepcopy(config)
 

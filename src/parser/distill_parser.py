@@ -2,17 +2,17 @@ import yaml
 import argparse
 import typing as tp
 
-from src.parser.base_parser import BaseParser
+from src.parser.parser import Parser
 
 
-class DistillParser(BaseParser):
+class DistillParser(Parser):
     """Static class (a set of methods for which inheritance is possible) for parsing command line arguments
     and model training configuration.
     """
 
     @staticmethod
     def parse_config(args: argparse.Namespace) -> dict[str, tp.Any]:
-        trainer_params = BaseParser.parse_config(args)
+        trainer_params = Parser.parse_config(args)
         # read config_yaml from path
         with open(args.config, "r") as stream:
             config = yaml.safe_load(stream)

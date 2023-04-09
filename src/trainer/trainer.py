@@ -1,6 +1,7 @@
 import os
 from copy import deepcopy
 from collections import defaultdict
+import queue
 from tqdm import tqdm
 
 import pandas as pd
@@ -11,15 +12,15 @@ import torch.nn as nn
 
 import src.datasets.PACS_dataset
 from src.utils.init_functions import init_object
-from src.parser.base_parser import BaseParser
+from src.parser.parser import Parser
+from src.swad.swa_utils import AveragedModel
 
-
-class BaseTrainer:
+class Trainer:
     """Class for training the model in the domain generalization mode.
     """
 
     def __init__(self, config, device, model_config, optimizer_config, scheduler_config,
-                 dataset, num_epochs, tracking_step, batch_size, run_id, logger):
+                swad_config, dataset, num_epochs, tracking_step, batch_size, run_id, logger):
         self.config = config
 
         self.device = device
@@ -32,6 +33,9 @@ class BaseTrainer:
         self.loss_function = nn.CrossEntropyLoss()
         self.optimizer_config = optimizer_config
         self.scheduler_config = scheduler_config
+        self.swad_config = swad_config
+        self.swad_config["average_begin"] = False
+        self.swad_config["average_finish"] = False
 
         self.num_epochs = num_epochs
         self.tracking_step = tracking_step
@@ -87,30 +91,45 @@ class BaseTrainer:
             num_workers=4)
         return train_loader, val_loader, test_loader
 
+ 
+    def process_batch(self, batch):
+        images, labels = batch["image"], batch["label"]
+        images, labels = images.to(
+            self.device).float(), labels.to(
+            self.device).long()
+        logits = self.model(images)
+
+        loss = self.loss_function(logits, labels)
+
+        ids = F.softmax(logits, dim=-1).argmax(dim=-1)
+        batch_true = (ids == labels).sum()
+
+        return batch_true, loss
+    
+    def init_training(self):
+        self.model = Parser.init_model(self.model_config, self.device)
+        self.optimizer = Parser.init_optimizer(
+            self.optimizer_config, self.model)
+        self.scheduler = Parser.init_scheduler(
+            self.scheduler_config, self.optimizer)
+
     def train_epoch_model(self, loader):
         self.model.train()
         accuracy = 0
         loss_sum = 0
         pbar = tqdm(loader)
         for batch in pbar:
-            images, labels = batch["image"], batch["label"]
-            images, labels = images.to(
-                self.device).float(), labels.to(
-                self.device).long()
-            logits = self.model(images)
-            loss = self.loss_function(logits, labels)
+            batch_true, loss = self.process_batch(batch)
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-            loss_sum += loss.item() * images.shape[0]
-
-            ids = F.softmax(logits, dim=-1).argmax(dim=-1)
-            batch_true = (ids == labels).sum()
+            loss_sum += loss.item() * batch["image"].shape[0]
             accuracy += batch_true.item()
 
             pbar.set_description(
                 "Accuracy on batch %f loss on batch %f" %
-                ((batch_true / images.shape[0]).item(), loss.item()))
+                ((batch_true / batch["image"].shape[0]).item(), loss.item()))
+
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
     def inference_epoch_model(self, loader):
@@ -120,30 +139,19 @@ class BaseTrainer:
             loss_sum = 0
             pbar = tqdm(loader)
             for batch in pbar:
-                images, labels = batch["image"].to(
-                    self.device), batch["label"].to(
-                    self.device).long()
-                logits = self.model(images)
-                loss = self.loss_function(logits, labels)
-                loss_sum += loss.item() * images.shape[0]
-
-                ids = F.softmax(logits, dim=-1).argmax(dim=-1)
-                batch_true = (ids == labels).sum()
+                batch_true, loss = self.process_batch(batch)
+                loss_sum += loss.item() * batch["image"].shape[0]
                 accuracy += batch_true.item()
 
                 pbar.set_description(
                     "Accuracy on batch %f loss on batch %f" %
-                    ((batch_true / images.shape[0]).item(), loss.item()))
+                    ((batch_true / batch["image"].shape[0]).item(), loss.item()))
+
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
     def train_one_domain(self, test_domain):
-        self.model = BaseParser.init_model(self.model_config, self.device)
         train_loader, val_loader, test_loader = self.create_loaders(
             test_domain)
-        self.optimizer = BaseParser.init_optimizer(
-            self.optimizer_config, self.model)
-        self.scheduler = BaseParser.init_scheduler(
-            self.scheduler_config, self.optimizer)
         max_val_accuracy = 0
 
         for i in range(1, self.num_epochs + 1):
@@ -170,23 +178,81 @@ class BaseTrainer:
                 self.logger.log_metric(
                     f"{self.domains[test_domain]}.test.loss", test_loss, i)
 
-            self.scheduler.step()
+            if self.scheduler is not None:
+                self.scheduler.step()
 
-        self.load_checkpoint(test_domain)
-        metrics = dict()
-        metrics["train_accuracy"], metrics["train_loss"] = self.inference_epoch_model(
-            train_loader)
-        metrics["val_accuracy"], metrics["val_loss"] = self.inference_epoch_model(
-            val_loader)
-        metrics["test_accuracy"], metrics["test_loss"] = self.inference_epoch_model(
-            test_loader)
-        return metrics
+    def swad_train_one_domain(self, test_domain):
+        train_loader, val_loader, test_loader = self.create_loaders(
+            test_domain)
+        self.model.eval()
+        ind = 0
+        val_loss = []
+        models = queue.Queue()
+        while ind < self.swad_config["num_iterations"]:
+            for batch in train_loader:
+                batch_true, loss = self.process_batch(batch)
+                ind += 1
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+
+                accuracy =  batch_true.item() / batch["image"].shape[0]
+
+                self.logger.log_metric(
+                        f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
+                self.logger.log_metric(
+                        f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
+
+                if ind % self.swad_config["frequency"] == 0:
+                    accuracy, loss = self.inference_epoch_model(val_loader)
+                    self.logger.log_metric(
+                        f"{self.domains[test_domain]}.val.accuracy", accuracy, ind)
+                    self.logger.log_metric(
+                        f"{self.domains[test_domain]}.val.loss", loss, ind)
+                    val_loss.append(loss)
+                    print("IND: ", ind / self.swad_config["frequency"], "LOSS: ", val_loss[-1])
+                    if ind == self.swad_config["num_iterations"]:
+                        break
+                    if self.swad_config["average_finish"]:
+                        continue
+                    models.put(deepcopy(self.model).cpu())
+                    if not self.swad_config["average_begin"]:
+                        if models.qsize() <= self.swad_config["n_converge"]:
+                            continue
+                        if min(val_loss[-self.swad_config["n_converge"]:]) == val_loss[-self.swad_config["n_converge"]]:
+                            print("START ITER: ", ind / self.swad_config["frequency"] - self.swad_config["n_converge"] + 1)
+                            final_model = AveragedModel(models.get())
+                            self.swad_config["average_begin"] = True 
+                            loss_threshold = val_loss[-self.swad_config["n_converge"]] * self.swad_config["tolerance_ratio"]
+                            print("THRESHOLD: ", loss_threshold)
+                        else:
+                            models.get()
+                    if self.swad_config["average_begin"]:
+                        if models.qsize() < self.swad_config["n_tolerance"] - 1:
+                            continue
+                        final_model.update_parameters(models.get())
+                        if min(val_loss[-self.swad_config["n_tolerance"]:]) > loss_threshold:
+                            print("END ITER: ", ind / self.swad_config["frequency"] - self.swad_config["n_tolerance"] + 1)
+                            self.swad_config["average_finish"] = True
+
+        print("Classic model: ", self.inference_epoch_model(test_loader))
+        self.model = final_model.to(self.device)
+        print("SWAD model: ", self.inference_epoch_model(test_loader))
+        self.save_checkpoint(test_domain)
 
     def train(self):
         # log all info
         all_metrics = defaultdict(list)
         for i in range(len(self.domains)):
-            metrics = self.train_one_domain(i)
+            self.init_training()
+            if self.swad_config is not None:
+                self.swad_train_one_domain(i)
+            else:
+                self.train_one_domain(i)
+            self.load_checkpoint(i)
+            metrics = dict()
+            for metric, loader in zip(["train", "val", "test"], self.create_loaders(i)):
+                metrics[f"{metric}_accuracy"], metrics[f"{metric}_loss"] = self.inference_epoch_model(loader)
             for metric in metrics:
                 all_metrics[metric].append(metrics[metric])
         all_metrics["domain"] = self.domains
@@ -213,7 +279,7 @@ class BaseTrainer:
         torch.save(state, path)
 
     def load_checkpoint(self, test_domain):
-        self.model = BaseParser.init_model(self.model_config, self.device)
+        self.model = Parser.init_model(self.model_config, self.device)
         model_path = f"saved/{self.run_id}/checkpoint_name_{self.model_config['name']}"
         model_path += f"_test_domain_{self.domains[test_domain]}_best.pth"
         checkpoint = torch.load(model_path)

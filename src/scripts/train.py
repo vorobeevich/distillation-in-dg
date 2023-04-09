@@ -32,13 +32,14 @@ args = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = args.device
 
 from src.trainer.distill_trainer import DistillTrainer
-from src.trainer.base_trainer import BaseTrainer
+from src.trainer.trainer import Trainer
+
 from src.parser.distill_parser import DistillParser
-from src.parser.base_parser import BaseParser
+from src.parser.parser import Parser
 
 # parse args
 if args.dist:
     trainer = DistillTrainer(**DistillParser.parse_config(args))
 else:
-    trainer = BaseTrainer(**BaseParser.parse_config(args))
+    trainer = Trainer(**Parser.parse_config(args))
 trainer.train()
