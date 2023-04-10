@@ -235,11 +235,15 @@ class Trainer:
                         if min(val_loss[-self.swad_config["n_tolerance"]:]) > loss_threshold:
                             print("END ITER: ", ind / self.swad_config["frequency"] - self.swad_config["n_tolerance"] + 1)
                             self.swad_config["average_finish"] = True
+                            while models.qsize() > 0:
+                                models.get()
 
         print("Classic model: ", self.inference_epoch_model(test_loader))
         self.model = final_model.model.to(self.device)
         print("SWAD model: ", self.inference_epoch_model(test_loader))
         self.save_checkpoint(test_domain)
+        self.swad_config["average_begin"] = False
+        self.swad_config["average_finish"] = False
 
     def train(self):
         # log all info
