@@ -189,6 +189,7 @@ class Trainer:
         ind = 0
         val_loss = []
         models = queue.Queue()
+        
         while ind < self.swad_config["num_iterations"]:
             for batch in train_loader:
                 batch_true, loss = self.process_batch(batch)
@@ -203,6 +204,10 @@ class Trainer:
                         f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
                 self.logger.log_metric(
                         f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
+                
+                if ind % self.swad_config["frequency"] == 1:
+                    averaged_model = AveragedModel(self.model).cpu()
+                averaged_model.update_parameters(deepcopy(self.model).cpu())
 
                 if ind % self.swad_config["frequency"] == 0:
                     accuracy, loss = self.inference_epoch_model(val_loader)
@@ -216,7 +221,7 @@ class Trainer:
                         break
                     if self.swad_config["average_finish"]:
                         continue
-                    models.put(deepcopy(self.model).cpu())
+                    models.put(averaged_model.model)
                     if not self.swad_config["average_begin"]:
                         if models.qsize() <= self.swad_config["n_converge"]:
                             continue
@@ -228,7 +233,7 @@ class Trainer:
                             print("THRESHOLD: ", loss_threshold)
                         else:
                             models.get()
-                    if self.swad_config["average_begin"]:
+                    else:
                         if models.qsize() < self.swad_config["n_tolerance"] - 1:
                             continue
                         final_model.update_parameters(models.get())
@@ -237,6 +242,7 @@ class Trainer:
                             self.swad_config["average_finish"] = True
                             while models.qsize() > 0:
                                 models.get()
+                   
 
         print("Classic model: ", self.inference_epoch_model(test_loader))
         self.model = final_model.model.to(self.device)
