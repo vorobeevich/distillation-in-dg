@@ -41,7 +41,7 @@ class DistillTrainer(Trainer):
         if self.mixup is not None:
             images = self.mixup_on_batch(images)
             if self.is_logging:
-                # logging first mixup batch to wandb every epoch
+                # logging first mixup batch to wandb every domain
                 grid = make_grid(images, nrow=8)
                 self.logger.log_image(grid, "Mixup_batch")
                 self.is_logging = False
@@ -64,14 +64,15 @@ class DistillTrainer(Trainer):
         return batch_true, loss
 
     def train_epoch_model(self, loader):
-        self.is_logging = True
         return super().train_epoch_model(loader)
 
     def train_one_domain(self, test_domain):
+        self.is_logging = True
         self.load_teacher(test_domain)
         super().train_one_domain(test_domain)
     
     def swad_train_one_domain(self, test_domain):
+        self.is_logging = True
         self.load_teacher(test_domain)
         super().swad_train_one_domain(test_domain)
 
