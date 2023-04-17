@@ -51,10 +51,10 @@ swad:
   n_converge: 3
   n_tolerance: 6
   tolerance_ratio: 1.3
-  num_iterations: 25000
+  num_iterations: 50000
   frequency: 100
 
-run_id: distillation_domainbed
+run_id: distillation_swad
 run_id_teacher: swad_teacher_baseline
 
 wandb_project: dist-gen

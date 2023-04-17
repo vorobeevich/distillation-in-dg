@@ -41,15 +41,15 @@ optimizer:
   kwargs:
     lr: 0.00005
 scheduler: null
-num_epochs: 250
-tracking_step: 25
+num_epochs: 500
+tracking_step: 50
 batch_size: 64
 seed: 2023
 temperature: 5
 
 swad: null
 
-run_id: distillation_domainbed
+run_id: distillation_no_swad
 run_id_teacher: swad_teacher_baseline
 
 wandb_project: dist-gen
