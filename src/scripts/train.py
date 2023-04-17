@@ -8,17 +8,15 @@ parser = argparse.ArgumentParser(description="Train model from config")
 
 parser.add_argument(
     "--config",
-    default=None,
     type=str,
     help="Path to config file",
     required=True
 )
 parser.add_argument(
     "--device",
-    default=None,
+    default='0',
     type=str,
-    help="Device index for CUDA_VISIBLE_DEVICES variable",
-    required=True
+    help="Device index for CUDA_VISIBLE_DEVICES variable"
 )
 parser.add_argument(
     "--dist",
