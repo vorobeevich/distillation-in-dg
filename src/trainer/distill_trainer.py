@@ -54,7 +54,7 @@ class DistillTrainer(Trainer):
         loss = self.loss_function(
             probs_student,
             probs_teacher) * self.temperature * self.temperature
-        
+
         ids = F.softmax(logits, dim=-1).argmax(dim=-1)
         # if we use mixup then accuracy is not defined, set it to 1
         if self.mixup is not None:
@@ -65,15 +65,15 @@ class DistillTrainer(Trainer):
 
     def train_epoch_model(self, loader):
         self.is_logging = True
-        super().train_epoch_model(loader)
+        return super().train_epoch_model(loader)
 
     def train_one_domain(self, test_domain):
         self.load_teacher(test_domain)
-        return super().train_one_domain(test_domain)
+        super().train_one_domain(test_domain)
     
     def swad_train_one_domain(self, test_domain):
         self.load_teacher(test_domain)
-        return super().swad_train_one_domain(test_domain)
+        super().swad_train_one_domain(test_domain)
 
     def load_teacher(self, test_domain):
         self.model_teacher = Parser.init_model(
