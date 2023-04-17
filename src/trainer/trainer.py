@@ -5,6 +5,7 @@ import queue
 from tqdm import tqdm
 
 import pandas as pd
+import numpy as np
 
 import torch.utils.data
 import torch.nn.functional as F
@@ -14,6 +15,32 @@ import src.datasets.PACS_dataset
 from src.utils.init_functions import init_object
 from src.parser.parser import Parser
 from src.swad.swa_utils import AveragedModel
+
+def check(model, loader, loss_function):
+    with torch.inference_mode():
+        model.eval()
+        accuracy = 0
+        loss_sum = 0
+        pbar = tqdm(loader)
+        for batch in pbar:
+            images, labels = batch["image"], batch["label"]
+            images, labels = images.to(
+                "cuda").float(), labels.to(
+                "cuda").long()
+            logits = model(images)
+
+            loss = loss_function(logits, labels)
+
+            ids = F.softmax(logits, dim=-1).argmax(dim=-1)
+            batch_true = (ids == labels).sum()
+            loss_sum += loss.item() * batch["image"].shape[0]
+            accuracy += batch_true.item()
+
+            pbar.set_description(
+                "Accuracy on batch %f loss on batch %f" %
+                ((batch_true / batch["image"].shape[0]).item(), loss.item()))
+
+        return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
 class Trainer:
     """Class for training the model in the domain generalization mode.
@@ -113,6 +140,12 @@ class Trainer:
             self.optimizer_config, self.model)
         self.scheduler = Parser.init_scheduler(
             self.scheduler_config, self.optimizer)
+    
+    def swad_train_regime(self):
+        self.model.train()
+        for module in self.model.modules():
+            if isinstance(module, nn.BatchNorm2d):
+                module.eval()
 
     def train_epoch_model(self, loader):
         self.model.train()
@@ -185,11 +218,11 @@ class Trainer:
     def swad_train_one_domain(self, test_domain):
         train_loader, val_loader, test_loader = self.create_loaders(
             test_domain)
-        self.model.eval()
+        self.swad_train_regime()
         ind = 0
         val_loss = []
         models = queue.Queue()
-        
+      
         while ind < self.swad_config["num_iterations"]:
             for batch in train_loader:
                 batch_true, loss = self.process_batch(batch)
@@ -197,26 +230,27 @@ class Trainer:
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
-
-                accuracy =  batch_true.item() / batch["image"].shape[0]
+                accuracy = batch_true.item() / batch["image"].shape[0]
 
                 self.logger.log_metric(
                         f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
                 self.logger.log_metric(
                         f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
-                
+
                 if ind % self.swad_config["frequency"] == 1:
                     averaged_model = AveragedModel(self.model).cpu()
-                averaged_model.update_parameters(deepcopy(self.model).cpu())
+                else:
+                    averaged_model.update_parameters(deepcopy(self.model).cpu())
 
                 if ind % self.swad_config["frequency"] == 0:
                     accuracy, loss = self.inference_epoch_model(val_loader)
+                    self.swad_train_regime()
                     self.logger.log_metric(
                         f"{self.domains[test_domain]}.val.accuracy", accuracy, ind)
                     self.logger.log_metric(
                         f"{self.domains[test_domain]}.val.loss", loss, ind)
                     val_loss.append(loss)
-                    print("IND: ", ind / self.swad_config["frequency"], "LOSS: ", val_loss[-1])
+                    print("IND: ", ind / self.swad_config["frequency"], "LOSS: ", val_loss[-1], "ACCURACY: ", accuracy)
                     if ind == self.swad_config["num_iterations"]:
                         break
                     if self.swad_config["average_finish"]:
@@ -229,11 +263,17 @@ class Trainer:
                             print("START ITER: ", ind / self.swad_config["frequency"] - self.swad_config["n_converge"] + 1)
                             final_model = AveragedModel(models.get())
                             self.swad_config["average_begin"] = True 
-                            loss_threshold = val_loss[-self.swad_config["n_converge"]] * self.swad_config["tolerance_ratio"]
+                            loss_threshold = np.mean(val_loss[-self.swad_config["n_converge"]:]) * self.swad_config["tolerance_ratio"]
                             print("THRESHOLD: ", loss_threshold)
                         else:
                             models.get()
                     else:
+                        print("CLASSIC model: ", check(self.model, test_loader, nn.CrossEntropyLoss()))
+                        self.swad_train_regime()
+                        print("SWAD model: ", check(final_model.model.to(self.device), test_loader, nn.CrossEntropyLoss()))
+                        print("SWA model: ", check(averaged_model.model.to(self.device), test_loader, nn.CrossEntropyLoss()))
+                        
+                        
                         if models.qsize() < self.swad_config["n_tolerance"] - 1:
                             continue
                         final_model.update_parameters(models.get())

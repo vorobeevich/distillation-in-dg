@@ -9,7 +9,6 @@ class AveragedModel(nn.Module):
         self.model = deepcopy(model)
 
         def avg_fn(averaged_model_parameter, model_parameter):
-            self.n += 1
             return averaged_model_parameter + (model_parameter - averaged_model_parameter) / self.n 
     
         self.avg_fn = avg_fn
@@ -23,6 +22,7 @@ class AveragedModel(nn.Module):
         Args:
             model: current model to update params
         """
+        self.n += 1
         for p_swa, p_model in zip(self.parameters(), model.parameters()):
             device = p_swa.device
             p_model_ = p_model.detach().to(device)
