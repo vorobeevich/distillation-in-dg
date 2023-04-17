@@ -21,3 +21,6 @@ class WandbLogger:
 
     def log_image(self, image_array, name: str):
         self.run.log({name: wandb.Image(image_array)})
+    
+    def watch(self, model, loss_function, log, log_freq):
+        self.run.watch(model, loss_function, log, log_freq)
