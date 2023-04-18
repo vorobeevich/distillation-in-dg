@@ -249,7 +249,6 @@ class Trainer:
                     self.logger.log_metric(
                         f"{self.domains[test_domain]}.val.loss", loss, ind)
                     val_loss.append(loss)
-                    print("IND: ", ind / self.swad_config["frequency"], "LOSS: ", val_loss[-1], "ACCURACY: ", accuracy)
                     if ind == self.swad_config["num_iterations"]:
                         break
                     if self.swad_config["average_finish"]:
@@ -267,12 +266,6 @@ class Trainer:
                         else:
                             models.get()
                     else:
-                        print("CLASSIC model: ", check(self.model, test_loader, nn.CrossEntropyLoss()))
-                        self.swad_train_regime()
-                        print("SWAD model: ", check(final_model.model.to(self.device), test_loader, nn.CrossEntropyLoss()))
-                        print("SWA model: ", check(averaged_model.model.to(self.device), test_loader, nn.CrossEntropyLoss()))
-                        
-                        
                         if models.qsize() < self.swad_config["n_tolerance"] - 1:
                             continue
                         final_model.update_parameters(models.get())
@@ -281,17 +274,13 @@ class Trainer:
                             self.swad_config["average_finish"] = True
                             while models.qsize() > 0:
                                 models.get()
-                   
 
-        print("Classic model: ", self.inference_epoch_model(test_loader))
         self.model = final_model.model.to(self.device)
-        print("SWAD model: ", self.inference_epoch_model(test_loader))
         self.save_checkpoint(test_domain)
         self.swad_config["average_begin"] = False
         self.swad_config["average_finish"] = False
 
     def train(self):
-        # log all info
         all_metrics = defaultdict(list)
         for i in range(len(self.domains)):
             self.init_training()
@@ -301,6 +290,7 @@ class Trainer:
                 self.train_one_domain(i)
             self.load_checkpoint(i)
             metrics = dict()
+            # log all info
             for metric, loader in zip(["train", "val", "test"], self.create_loaders(i)):
                 metrics[f"{metric}_accuracy"], metrics[f"{metric}_loss"] = self.inference_epoch_model(loader)
             for metric in metrics:
