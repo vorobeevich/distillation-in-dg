@@ -44,7 +44,7 @@ seed: 2023
 
 swad: null
 
-run_id: swad_setup_no_average_baseline
+run_id: teacher_no_average_baseline.yaml
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec

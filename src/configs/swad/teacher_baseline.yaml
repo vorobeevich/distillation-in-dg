@@ -49,7 +49,7 @@ swad:
   num_iterations: 5000
   frequency: 100
 
-run_id: swad_teacher_baseline
+run_id: teacher_baseline
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec
