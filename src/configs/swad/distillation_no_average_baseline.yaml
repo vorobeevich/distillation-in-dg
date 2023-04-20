@@ -49,8 +49,8 @@ temperature: 5
 
 swad: null
 
-run_id: distillation_no_average_baseline
-run_id_teacher: teacher_baseline
+run_id: swad_distillation_no_average_baseline
+run_id_teacher: swad_teacher_baseline
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec

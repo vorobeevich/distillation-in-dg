@@ -41,7 +41,7 @@ seed: 2023
 
 swad: null
 
-run_id: student_baseline
+run_id: augs_student_baseline
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec

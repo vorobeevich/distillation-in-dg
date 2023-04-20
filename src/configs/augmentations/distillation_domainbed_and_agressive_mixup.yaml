@@ -54,8 +54,8 @@ temperature: 5
 
 swad: null
 
-run_id: distillation_domainbed_and_agressive_mixup
-run_id_teacher: teacher_baseline
+run_id: augs_distillation_domainbed_and_agressive_mixup
+run_id_teacher: augs_teacher_baseline
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec

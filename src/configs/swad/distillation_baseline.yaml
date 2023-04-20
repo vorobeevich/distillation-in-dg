@@ -54,8 +54,8 @@ swad:
   num_iterations: 50000
   frequency: 100
 
-run_id: distillation_baseline
-run_id_teacher: teacher_baseline
+run_id: swad_distillation_baseline
+run_id_teacher: swad_teacher_baseline
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec
