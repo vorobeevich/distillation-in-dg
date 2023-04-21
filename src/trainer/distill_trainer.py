@@ -38,9 +38,9 @@ class DistillTrainer(Trainer):
             self.device).float(), labels.to(
             self.device).long()
 
-        if True:
+        if self.mixup is not None:
             #images = self.mixup_on_batch(images)
-            if True:
+            if self.is_logging:
                 # logging first mixup batch to wandb every domain
                 grid = make_grid(images, nrow=8)
                 self.logger.log_image(grid, "Mixup_batch")
