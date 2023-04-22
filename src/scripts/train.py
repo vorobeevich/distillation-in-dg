@@ -14,19 +14,19 @@ parser.add_argument(
 )
 parser.add_argument(
     "--device",
-    default='0',
+    default="0",
     type=str,
     help="Device index for CUDA_VISIBLE_DEVICES variable"
 )
 parser.add_argument(
     "--dist",
     help="Will the model train in distillation mode or not",
-    action='store_true'
+    action="store_true"
 )
 
 args = parser.parse_args()
 
-# set device before imports (https://github.com/pytorch/pytorch/issues/9158)
+# set device before src imports (see https://github.com/pytorch/pytorch/issues/9158)
 os.environ["CUDA_VISIBLE_DEVICES"] = args.device
 
 from src.trainer.distill_trainer import DistillTrainer
