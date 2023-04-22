@@ -72,12 +72,8 @@ class Trainer:
         self.logger = logger
 
         self.run_id = run_id
-        self.checkpoint_dir = "saved/"
-        if not os.path.exists(self.checkpoint_dir):
-            os.makedirs(self.checkpoint_dir)
-        self.checkpoint_dir += f"{self.run_id}/"
-        if not os.path.exists(self.checkpoint_dir):
-            os.makedirs(self.checkpoint_dir)
+        self.checkpoint_dir = f"saved/{self.run_id}/"
+
 
     def create_loaders(self, test_domain):
         train_dataset, val_dataset, test_dataset = deepcopy(
@@ -215,6 +211,9 @@ class Trainer:
                 self.scheduler.step()
 
     def swad_train_one_domain(self, test_domain):
+        self.save_checkpoint(test_domain)
+        if test_domain == 0:
+            return
         train_loader, val_loader, test_loader = self.create_loaders(
             test_domain)
         self.swad_train_regime()
@@ -229,12 +228,6 @@ class Trainer:
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
-                accuracy = batch_true.item() / batch["image"].shape[0]
-
-                self.logger.log_metric(
-                        f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
-                self.logger.log_metric(
-                        f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
 
                 if ind % self.swad_config["frequency"] == 1:
                     averaged_model = AveragedModel(self.model).cpu()
@@ -242,43 +235,12 @@ class Trainer:
                     averaged_model.update_parameters(deepcopy(self.model).cpu())
 
                 if ind % self.swad_config["frequency"] == 0:
-                    accuracy, loss = self.inference_epoch_model(val_loader)
-                    self.swad_train_regime()
-                    self.logger.log_metric(
-                        f"{self.domains[test_domain]}.val.accuracy", accuracy, ind)
-                    self.logger.log_metric(
-                        f"{self.domains[test_domain]}.val.loss", loss, ind)
-                    val_loss.append(loss)
-                    if ind == self.swad_config["num_iterations"]:
-                        break
-                    if self.swad_config["average_finish"]:
-                        continue
-                    models.put(averaged_model.model)
-                    if not self.swad_config["average_begin"]:
-                        if models.qsize() <= self.swad_config["n_converge"]:
-                            continue
-                        if min(val_loss[-self.swad_config["n_converge"]:]) == val_loss[-self.swad_config["n_converge"]]:
-                            print("START ITER: ", ind / self.swad_config["frequency"] - self.swad_config["n_converge"] + 1)
-                            final_model = AveragedModel(models.get())
-                            self.swad_config["average_begin"] = True 
-                            loss_threshold = np.mean(val_loss[-self.swad_config["n_converge"]:]) * self.swad_config["tolerance_ratio"]
-                            print("THRESHOLD: ", loss_threshold)
-                        else:
-                            models.get()
-                    else:
-                        if models.qsize() < self.swad_config["n_tolerance"] - 1:
-                            continue
-                        final_model.update_parameters(models.get())
-                        if min(val_loss[-self.swad_config["n_tolerance"]:]) > loss_threshold:
-                            print("END ITER: ", ind / self.swad_config["frequency"] - self.swad_config["n_tolerance"] + 1)
-                            self.swad_config["average_finish"] = True
-                            while models.qsize() > 0:
-                                models.get()
-
-        self.model = final_model.model.to(self.device)
-        self.save_checkpoint(test_domain)
-        self.swad_config["average_begin"] = False
-        self.swad_config["average_finish"] = False
+                    state = {
+                        "name": self.config["model"]["name"],
+                        "model": averaged_model.model.state_dict(),
+                    }
+                    path = f'{self.checkpoint_dir}checkpoint_name_{state["name"]}_test_domain_{self.domains[test_domain]}_iter_{ind}.pth'
+                    torch.save(state, path)
 
     def train(self):
         all_metrics = defaultdict(list)
@@ -315,7 +277,7 @@ class Trainer:
             "scheduler": self.scheduler.state_dict() if self.scheduler is not None else [],
             "config": self.config
         }
-        path = f"{self.checkpoint_dir}checkpoint_name_{state['name']}_test_domain_{self.domains[test_domain]}_best.pth"
+        path = f'{self.checkpoint_dir}checkpoint_name_{state["name"]}_test_domain_{self.domains[test_domain]}_best.pth'
         torch.save(state, path)
 
     def load_checkpoint(self, test_domain):

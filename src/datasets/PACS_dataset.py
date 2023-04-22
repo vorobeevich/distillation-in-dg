@@ -7,8 +7,8 @@ def get_paths_and_labels(
     """Return list of images paths for a given type of the dataset.
 
     Args:
-        dataset_types (list[str]): one of ['train'], ['test'], ['train', 'test']
-        domain (str): one of 'art_painting', 'cartoon', 'photo', 'sketch'
+        dataset_types (list[str]): one of ["train"], ["test"], ["train", "test"]
+        domain (str): one of "art_painting", "cartoon", "photo", "sketch"
 
     Returns:
         tuple[list[str], torch.Tensor]: paths to images and tensor with class labels
@@ -18,7 +18,7 @@ def get_paths_and_labels(
     labels = []
     for ds_type in dataset_types:
         filepath = f"data/pacs/labels/{domain}_{ds_type}.txt"
-        f = open(filepath, 'r')
+        f = open(filepath, "r")
         lines = f.readlines()
         f.close()
         lines = [l.split() for l in lines]
@@ -54,15 +54,15 @@ class PACS_dataset(torch.utils.data.Dataset):
 
         if self.augmentations:
             sample = {
-                'image':
+                "image":
                 self.augmentations(image)
             }
         else:
             sample = {
-                'image': image,
+                "image": image,
             }
 
-        sample['image'] = self.transforms(sample['image'])
-        sample['label'] = label
+        sample["image"] = self.transforms(sample["image"])
+        sample["label"] = label
 
         return sample

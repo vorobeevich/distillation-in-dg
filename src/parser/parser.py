@@ -1,3 +1,4 @@
+import os
 import yaml
 import argparse
 from datetime import datetime
@@ -55,6 +56,12 @@ class Parser:
         if config["run_id"] is None:
             # use timestamp as default run-id
             config["run_id"] = datetime.now().strftime(r"%m%d_%H%M%S")
+
+        # make checkpoint_dir
+        if not os.path.exists("saved/"):
+            os.makedirs("saved/")
+        if not os.path.exists(f'saved/{config["run_id"]}/'):
+            os.makedirs(f'saved/{config["run_id"]}/')
 
         # save device id in config
         config["device_id"] = args.device

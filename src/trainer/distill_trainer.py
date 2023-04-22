@@ -23,7 +23,7 @@ class DistillTrainer(Trainer):
         self.mixup = mixup
         if self.mixup is not None:
             self.lamb = torch.distributions.beta.Beta(self.mixup, self.mixup)
-        self.loss_function = nn.KLDivLoss(reduction='batchmean')
+        self.loss_function = nn.KLDivLoss(reduction="batchmean")
 
     def mixup_on_batch(self, images: torch.Tensor):
         indeces = torch.randperm(images.shape[0])
@@ -79,7 +79,7 @@ class DistillTrainer(Trainer):
     def load_teacher(self, test_domain):
         self.model_teacher = Parser.init_model(
             self.model_teacher_config, self.device)
-        model_teacher_path = f"saved/{self.run_id_teacher}/checkpoint_name_{self.model_teacher_config['name']}"
+        model_teacher_path = f'saved/{self.run_id_teacher}/checkpoint_name_{self.model_teacher_config["name"]}'
         model_teacher_path += f"_test_domain_{self.domains[test_domain]}_best.pth"
         checkpoint = torch.load(model_teacher_path)
         self.model_teacher.load_state_dict(checkpoint["model"])
