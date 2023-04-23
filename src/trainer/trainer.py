@@ -211,16 +211,12 @@ class Trainer:
                 self.scheduler.step()
 
     def swad_train_one_domain(self, test_domain):
-        self.save_checkpoint(test_domain)
-        if test_domain == 0:
-            return
         train_loader, val_loader, test_loader = self.create_loaders(
             test_domain)
+        max_val_accuracy = 0
         self.swad_train_regime()
         ind = 0
-        val_loss = []
-        models = queue.Queue()
-      
+
         while ind < self.swad_config["num_iterations"]:
             for batch in train_loader:
                 batch_true, loss = self.process_batch(batch)
@@ -228,13 +224,36 @@ class Trainer:
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
+                accuracy = batch_true.item() / batch["image"].shape[0]
 
+                self.logger.log_metric(
+                        f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
+                self.logger.log_metric(
+                        f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
+                if ind == self.swad_config["num_iterations"]:
+                    break
                 if ind % self.swad_config["frequency"] == 1:
                     averaged_model = AveragedModel(self.model).cpu()
                 else:
                     averaged_model.update_parameters(deepcopy(self.model).cpu())
 
+                if ind % self.tracking_step == 0:
+                    accuracy, loss = self.inference_epoch_model(test_loader)
+                    self.swad_train_regime()
+                    self.logger.log_metric(
+                        f"{self.domains[test_domain]}.test.accuracy", accuracy, ind)
+                    self.logger.log_metric(
+                        f"{self.domains[test_domain]}.test.loss", loss, ind)
+    
                 if ind % self.swad_config["frequency"] == 0:
+                    accuracy, loss = self.inference_epoch_model(val_loader)
+                    self.swad_train_regime()
+                    self.logger.log_metric(
+                        f"{self.domains[test_domain]}.val.accuracy", accuracy, ind)
+                    self.logger.log_metric(
+                        f"{self.domains[test_domain]}.val.loss", loss, ind)
+                    if accuracy > max_val_accuracy:
+                        self.save_checkpoint(test_domain)
                     state = {
                         "name": self.config["model"]["name"],
                         "model": averaged_model.model.state_dict(),

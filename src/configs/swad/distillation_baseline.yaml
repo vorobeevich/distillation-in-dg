@@ -42,7 +42,7 @@ optimizer:
     lr: 0.00005
 scheduler: null
 num_epochs: null
-tracking_step: null
+tracking_step: 5000
 batch_size: 64
 seed: 2023
 temperature: 5
