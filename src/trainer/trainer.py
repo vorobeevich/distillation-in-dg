@@ -230,8 +230,6 @@ class Trainer:
                         f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
                 self.logger.log_metric(
                         f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
-                if ind == self.swad_config["num_iterations"]:
-                    break
                 if ind % self.swad_config["frequency"] == 1:
                     averaged_model = AveragedModel(self.model).cpu()
                 else:
@@ -244,7 +242,8 @@ class Trainer:
                         f"{self.domains[test_domain]}.test.accuracy", accuracy, ind)
                     self.logger.log_metric(
                         f"{self.domains[test_domain]}.test.loss", loss, ind)
-    
+
+
                 if ind % self.swad_config["frequency"] == 0:
                     accuracy, loss = self.inference_epoch_model(val_loader)
                     self.swad_train_regime()
@@ -260,6 +259,9 @@ class Trainer:
                     }
                     path = f'{self.checkpoint_dir}checkpoint_name_{state["name"]}_test_domain_{self.domains[test_domain]}_iter_{ind}.pth'
                     torch.save(state, path)
+
+                if ind == self.swad_config["num_iterations"]:
+                    break
 
     def train(self):
         all_metrics = defaultdict(list)
