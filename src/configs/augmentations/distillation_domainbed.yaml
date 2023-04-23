@@ -1,13 +1,12 @@
 model: 
   name: resnet18
   kwargs:
-    weights: ResNet18_Weights.IMAGENET1K_V1
+    weights: ResNet18_Weights.IMAGENET1K_V2
   last_layer: [512, 7]
 
 model_teacher: 
   name: resnet34
-  kwargs:
-    weights: ResNet34_Weights.IMAGENET1K_V1
+  kwargs: {}
   last_layer: [512, 7]
 
 dataset: 
