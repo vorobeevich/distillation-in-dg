@@ -35,7 +35,7 @@ class PACS_dataset(torch.utils.data.Dataset):
     Inherited from standard class torch.utils.data.Dataset.
     """
 
-    def init(
+    def __init__(
             self,
             dataset_type: list[str],
             domain_list: list[str],
@@ -63,7 +63,7 @@ class PACS_dataset(torch.utils.data.Dataset):
         self.transforms = transforms
         self.augmentations = augmentations
 
-    def len(self) -> int:
+    def __len__(self) -> int:
         """Returns the number of images in the dataset.
 
         Returns:
@@ -71,7 +71,7 @@ class PACS_dataset(torch.utils.data.Dataset):
         """
         return len(self.images)
 
-    def getitem(self, idx: int) -> dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         """Returns a picture from the dataset by its number.
         First, the image is read along the path, augmentations are applied to it (if necessary), then transforms.
         Also, the class label is returned.
