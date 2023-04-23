@@ -1,13 +1,12 @@
 model: 
   name: resnet18
   kwargs:
-    weights: ResNet18_Weights.IMAGENET1K_V1
+    weights: ResNet18_Weights.IMAGENET1K_V2
   last_layer: [512, 7]
 
 model_teacher: 
   name: resnet50
-  kwargs:
-    weights: ResNet50_Weights.IMAGENET1K_V1
+  kwargs: {}
   last_layer: [2048, 7]
 
 dataset: 
@@ -54,7 +53,7 @@ swad:
   num_iterations: 50000
   frequency: 100
 
-run_id: swad_distillation_small_lr
+run_id: swad_distillation_large_lr
 run_id_teacher: swad_teacher_baseline
 
 wandb_project: dist-gen

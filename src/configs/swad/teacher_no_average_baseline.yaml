@@ -1,7 +1,7 @@
 model: 
   name: resnet50
   kwargs:
-    weights: ResNet50_Weights.IMAGENET1K_V1
+    weights: ResNet50_Weights.IMAGENET1K_V2
   last_layer: [2048, 7]
 
 dataset: 
