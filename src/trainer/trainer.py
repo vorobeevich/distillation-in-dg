@@ -16,6 +16,7 @@ from src.utils.init_functions import init_object
 from src.parser.parser import Parser
 from src.swad.swa_utils import AveragedModel
 
+
 def check(model, loader, loss_function):
     with torch.inference_mode():
         model.eval()
@@ -42,12 +43,25 @@ def check(model, loader, loss_function):
 
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
+
 class Trainer:
     """Class for training the model in the domain generalization mode.
     """
 
-    def __init__(self, config, device, model_config, optimizer_config, scheduler_config,
-                swad_config, dataset, num_epochs, tracking_step, batch_size, run_id, logger):
+    def __init__(
+            self,
+            config,
+            device,
+            model_config,
+            optimizer_config,
+            scheduler_config,
+            swad_config,
+            dataset,
+            num_epochs,
+            tracking_step,
+            batch_size,
+            run_id,
+            logger):
         self.config = config
 
         self.device = device
@@ -73,7 +87,6 @@ class Trainer:
 
         self.run_id = run_id
         self.checkpoint_dir = f"saved/{self.run_id}/"
-
 
     def create_loaders(self, test_domain):
         train_dataset, val_dataset, test_dataset = deepcopy(
@@ -115,7 +128,6 @@ class Trainer:
             num_workers=4)
         return train_loader, val_loader, test_loader
 
- 
     def process_batch(self, batch):
         images, labels = batch["image"], batch["label"]
         images, labels = images.to(
@@ -129,14 +141,14 @@ class Trainer:
         batch_true = (ids == labels).sum()
 
         return batch_true, loss
-    
+
     def init_training(self):
         self.model = Parser.init_model(self.model_config, self.device)
         self.optimizer = Parser.init_optimizer(
             self.optimizer_config, self.model)
         self.scheduler = Parser.init_scheduler(
             self.scheduler_config, self.optimizer)
-    
+
     def swad_train_regime(self):
         self.model.train()
         for module in self.model.modules():
@@ -186,7 +198,9 @@ class Trainer:
         for i in range(1, self.num_epochs + 1):
             train_accuracy, train_loss = self.train_epoch_model(train_loader)
             self.logger.log_metric(
-                f"{self.domains[test_domain]}.train.accuracy", train_accuracy, i)
+                f"{self.domains[test_domain]}.train.accuracy",
+                train_accuracy,
+                i)
             self.logger.log_metric(
                 f"{self.domains[test_domain]}.train.loss", train_loss, i)
 
@@ -227,13 +241,14 @@ class Trainer:
                 accuracy = batch_true.item() / batch["image"].shape[0]
 
                 self.logger.log_metric(
-                        f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
+                    f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
                 self.logger.log_metric(
-                        f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
+                    f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
                 if ind % self.swad_config["frequency"] == 1:
                     averaged_model = AveragedModel(self.model).cpu()
                 else:
-                    averaged_model.update_parameters(deepcopy(self.model).cpu())
+                    averaged_model.update_parameters(
+                        deepcopy(self.model).cpu())
 
                 if ind % self.tracking_step == 0:
                     accuracy, loss = self.inference_epoch_model(test_loader)
@@ -242,7 +257,6 @@ class Trainer:
                         f"{self.domains[test_domain]}.test.accuracy", accuracy, ind)
                     self.logger.log_metric(
                         f"{self.domains[test_domain]}.test.loss", loss, ind)
-
 
                 if ind % self.swad_config["frequency"] == 0:
                     accuracy, loss = self.inference_epoch_model(val_loader)
@@ -274,8 +288,10 @@ class Trainer:
             self.load_checkpoint(i)
             metrics = dict()
             # log all info
-            for metric, loader in zip(["train", "val", "test"], self.create_loaders(i)):
-                metrics[f"{metric}_accuracy"], metrics[f"{metric}_loss"] = self.inference_epoch_model(loader)
+            for metric, loader in zip(
+                    ["train", "val", "test"], self.create_loaders(i)):
+                metrics[f"{metric}_accuracy"], metrics[f"{metric}_loss"] = self.inference_epoch_model(
+                    loader)
             for metric in metrics:
                 all_metrics[metric].append(metrics[metric])
         all_metrics["domain"] = self.domains
@@ -296,8 +312,7 @@ class Trainer:
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "scheduler": self.scheduler.state_dict() if self.scheduler is not None else [],
-            "config": self.config
-        }
+            "config": self.config}
         path = f'{self.checkpoint_dir}checkpoint_name_{state["name"]}_test_domain_{self.domains[test_domain]}_best.pth'
         torch.save(state, path)
 
