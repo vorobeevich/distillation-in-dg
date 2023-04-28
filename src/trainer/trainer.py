@@ -230,6 +230,8 @@ class Trainer:
         max_val_accuracy = 0
         self.swad_train_regime()
         ind = 0
+        val_loss = []
+        models = queue.Queue()
 
         while ind < self.swad_config["num_iterations"]:
             for batch in train_loader:
@@ -239,16 +241,11 @@ class Trainer:
                 loss.backward()
                 self.optimizer.step()
                 accuracy = batch_true.item() / batch["image"].shape[0]
-
                 self.logger.log_metric(
                     f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
                 self.logger.log_metric(
                     f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
-                if ind % self.swad_config["frequency"] == 1:
-                    averaged_model = AveragedModel(self.model).cpu()
-                else:
-                    averaged_model.update_parameters(
-                        deepcopy(self.model).cpu())
+                
 
                 if ind % self.tracking_step == 0:
                     accuracy, loss = self.inference_epoch_model(test_loader)
@@ -258,8 +255,10 @@ class Trainer:
                     self.logger.log_metric(
                         f"{self.domains[test_domain]}.test.loss", loss, ind)
 
+
                 if ind % self.swad_config["frequency"] == 0:
                     accuracy, loss = self.inference_epoch_model(val_loader)
+                    val_loss.append(loss)
                     self.swad_train_regime()
                     self.logger.log_metric(
                         f"{self.domains[test_domain]}.val.accuracy", accuracy, ind)
@@ -267,15 +266,57 @@ class Trainer:
                         f"{self.domains[test_domain]}.val.loss", loss, ind)
                     if accuracy > max_val_accuracy:
                         self.save_checkpoint(test_domain)
-                    state = {
-                        "name": self.config["model"]["name"],
-                        "model": averaged_model.model.state_dict(),
-                    }
-                    path = f'{self.checkpoint_dir}checkpoint_name_{state["name"]}_test_domain_{self.domains[test_domain]}_iter_{ind}.pth'
-                    torch.save(state, path)
+                    if self.swad_config["average_finish"]:
+                        continue
+                    models.put(averaged_model.model)
+
+                    if not self.swad_config["average_begin"]:
+                        if models.qsize() <= self.swad_config["n_converge"]:
+                            continue
+                        if min(val_loss[-self.swad_config["n_converge"]:]) == val_loss[-self.swad_config["n_converge"]]:
+                            print("START ITER: ", ind / self.swad_config["frequency"] - self.swad_config["n_converge"] + 1)
+                            swad_model = AveragedModel(models.get())
+                            self.swad_config["average_begin"] = True 
+                            loss_threshold = np.mean(val_loss[-self.swad_config["n_converge"]:]) * self.swad_config["tolerance_ratio"]
+                            print("THRESHOLD: ", loss_threshold)
+                        else:
+                            models.get()
+
+                    else:
+                        if models.qsize() < self.swad_config["n_tolerance"] - 1:
+                            continue
+                        swad_model.update_parameters(models.get())
+                        if min(val_loss[-self.swad_config["n_tolerance"]:]) > loss_threshold:
+                            print("END ITER: ", ind / self.swad_config["frequency"] - self.swad_config["n_tolerance"] + 1)
+                            self.swad_config["average_finish"] = True
+                            while models.qsize() > 0:
+                                models.get()
+
+                if ind >= self.swad_config["our_swad_begin"]:
+                    if ind == self.swad_config["our_swad_begin"]:
+                        our_swad_model = AveragedModel(self.model).cpu()
+                    else:
+                       our_swad_model.update_parameters(deepcopy(self.model).cpu()) 
 
                 if ind == self.swad_config["num_iterations"]:
                     break
+
+                if ind % self.swad_config["frequency"] == 1:
+                    averaged_model = AveragedModel(self.model).cpu()
+                else:
+                    averaged_model.update_parameters(
+                        deepcopy(self.model).cpu())
+                    
+        self.load_checkpoint(test_domain)
+        print("ERM RESULT: ", self.inference_epoch_model(test_loader)[0])
+        self.model = our_swad_model.model.to(self.device)
+        print("OUR SWAD RESULT: ", self.inference_epoch_model(test_loader)[0])
+        
+        self.model = swad_model.model.to(self.device)
+        print("ORIGINAL SWAD RESULT: ", self.inference_epoch_model(test_loader)[0])
+        self.save_checkpoint(test_domain)
+        self.swad_config["average_begin"] = False
+        self.swad_config["average_finish"] = False
 
     def train(self):
         all_metrics = defaultdict(list)
