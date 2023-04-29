@@ -235,8 +235,10 @@ class Trainer:
 
         while ind < self.swad_config["num_iterations"]:
             for batch in train_loader:
-                batch_true, loss = self.process_batch(batch)
                 ind += 1
+                if ind > self.swad_config["num_iterations"]:
+                    break
+                batch_true, loss = self.process_batch(batch)
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
@@ -254,6 +256,20 @@ class Trainer:
                         f"{self.domains[test_domain]}.test.accuracy", accuracy, ind)
                     self.logger.log_metric(
                         f"{self.domains[test_domain]}.test.loss", loss, ind)
+
+
+                if ind >= self.swad_config["our_swad_begin"]:
+                    if ind == self.swad_config["our_swad_begin"]:
+                        our_swad_model = AveragedModel(self.model).cpu()
+                    else:
+                       our_swad_model.update_parameters(deepcopy(self.model).cpu()) 
+
+
+                if ind % self.swad_config["frequency"] == 1:
+                    averaged_model = AveragedModel(self.model).cpu()
+                else:
+                    averaged_model.update_parameters(
+                        deepcopy(self.model).cpu())
 
 
                 if ind % self.swad_config["frequency"] == 0:
@@ -292,26 +308,12 @@ class Trainer:
                             while models.qsize() > 0:
                                 models.get()
 
-                if ind >= self.swad_config["our_swad_begin"]:
-                    if ind == self.swad_config["our_swad_begin"]:
-                        our_swad_model = AveragedModel(self.model).cpu()
-                    else:
-                       our_swad_model.update_parameters(deepcopy(self.model).cpu()) 
 
-                if ind == self.swad_config["num_iterations"]:
-                    break
-
-                if ind % self.swad_config["frequency"] == 1:
-                    averaged_model = AveragedModel(self.model).cpu()
-                else:
-                    averaged_model.update_parameters(
-                        deepcopy(self.model).cpu())
-                    
         self.load_checkpoint(test_domain)
         print("ERM RESULT: ", self.inference_epoch_model(test_loader)[0])
         self.model = our_swad_model.model.to(self.device)
         print("OUR SWAD RESULT: ", self.inference_epoch_model(test_loader)[0])
-        
+
         self.model = swad_model.model.to(self.device)
         print("ORIGINAL SWAD RESULT: ", self.inference_epoch_model(test_loader)[0])
         self.save_checkpoint(test_domain)
