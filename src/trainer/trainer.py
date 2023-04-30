@@ -159,7 +159,7 @@ class Trainer:
         self.model.train()
         accuracy = 0
         loss_sum = 0
-        pbar = tqdm(loader)
+        pbar = loader
         for batch in pbar:
             batch_true, loss = self.process_batch(batch)
             self.optimizer.zero_grad()
@@ -178,7 +178,7 @@ class Trainer:
             self.model.eval()
             accuracy = 0
             loss_sum = 0
-            pbar = tqdm(loader)
+            pbar = loader
             for batch in pbar:
                 batch_true, loss = self.process_batch(batch)
                 loss_sum += loss.item() * batch["image"].shape[0]
