@@ -168,9 +168,7 @@ class Trainer:
             loss_sum += loss.item() * batch["image"].shape[0]
             accuracy += batch_true.item()
 
-            pbar.set_description(
-                "Accuracy on batch %f loss on batch %f" %
-                ((batch_true / batch["image"].shape[0]).item(), loss.item()))
+            
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
     def inference_epoch_model(self, loader):
@@ -184,9 +182,7 @@ class Trainer:
                 loss_sum += loss.item() * batch["image"].shape[0]
                 accuracy += batch_true.item()
 
-                pbar.set_description(
-                    "Accuracy on batch %f loss on batch %f" %
-                    ((batch_true / batch["image"].shape[0]).item(), loss.item()))
+                
 
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
