@@ -47,7 +47,7 @@ scheduler:
 num_epochs: 500
 tracking_step: 50
 batch_size: 64
-seed: 2023
+seed: 1
 temperature: 5
 
 swad: null
