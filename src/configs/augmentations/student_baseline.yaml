@@ -28,11 +28,7 @@ optimizer:
   name: Adam
   kwargs:
     lr: 0.00005
-scheduler:
-  name: CosineAnnealingLR
-  kwargs:
-    eta_min: 0.00003
-    T_max: 500
+scheduler: null
 num_epochs: 500
 tracking_step: 50
 batch_size: 64
