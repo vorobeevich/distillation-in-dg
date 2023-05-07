@@ -17,33 +17,6 @@ from src.parser.parser import Parser
 from src.swad.swa_utils import AveragedModel
 
 
-def check(model, loader, loss_function):
-    with torch.inference_mode():
-        model.eval()
-        accuracy = 0
-        loss_sum = 0
-        pbar = tqdm(loader)
-        for batch in pbar:
-            images, labels = batch["image"], batch["label"]
-            images, labels = images.to(
-                "cuda").float(), labels.to(
-                "cuda").long()
-            logits = model(images)
-
-            loss = loss_function(logits, labels)
-
-            ids = F.softmax(logits, dim=-1).argmax(dim=-1)
-            batch_true = (ids == labels).sum()
-            loss_sum += loss.item() * batch["image"].shape[0]
-            accuracy += batch_true.item()
-
-            pbar.set_description(
-                "Accuracy on batch %f loss on batch %f" %
-                ((batch_true / batch["image"].shape[0]).item(), loss.item()))
-
-        return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
-
-
 class Trainer:
     """Class for training the model in the domain generalization mode.
     """
@@ -168,7 +141,6 @@ class Trainer:
             loss_sum += loss.item() * batch["image"].shape[0]
             accuracy += batch_true.item()
 
-            
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
     def inference_epoch_model(self, loader):
@@ -181,8 +153,6 @@ class Trainer:
                 batch_true, loss = self.process_batch(batch)
                 loss_sum += loss.item() * batch["image"].shape[0]
                 accuracy += batch_true.item()
-
-                
 
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
@@ -243,7 +213,6 @@ class Trainer:
                     f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
                 self.logger.log_metric(
                     f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
-                
 
                 if ind % self.tracking_step == 0:
                     accuracy, loss = self.inference_epoch_model(test_loader)
@@ -253,20 +222,18 @@ class Trainer:
                     self.logger.log_metric(
                         f"{self.domains[test_domain]}.test.loss", loss, ind)
 
-
                 if ind >= self.swad_config["our_swad_begin"]:
                     if ind == self.swad_config["our_swad_begin"]:
                         our_swad_model = AveragedModel(self.model).cpu()
                     else:
-                       our_swad_model.update_parameters(deepcopy(self.model).cpu()) 
-
+                        our_swad_model.update_parameters(
+                            deepcopy(self.model).cpu())
 
                 if ind % self.swad_config["frequency"] == 1:
                     averaged_model = AveragedModel(self.model).cpu()
                 else:
                     averaged_model.update_parameters(
                         deepcopy(self.model).cpu())
-
 
                 if ind % self.swad_config["frequency"] == 0:
                     accuracy, loss = self.inference_epoch_model(val_loader)
@@ -285,25 +252,38 @@ class Trainer:
                     if not self.swad_config["average_begin"]:
                         if models.qsize() <= self.swad_config["n_converge"]:
                             continue
-                        if min(val_loss[-self.swad_config["n_converge"]:]) == val_loss[-self.swad_config["n_converge"]]:
-                            print("START ITER: ", ind / self.swad_config["frequency"] - self.swad_config["n_converge"] + 1)
+                        if min(val_loss[-self.swad_config["n_converge"]:]
+                               ) == val_loss[-self.swad_config["n_converge"]]:
+                            print(
+                                "START ITER: ",
+                                ind /
+                                self.swad_config["frequency"] -
+                                self.swad_config["n_converge"] +
+                                1)
                             swad_model = AveragedModel(models.get())
-                            self.swad_config["average_begin"] = True 
-                            loss_threshold = np.mean(val_loss[-self.swad_config["n_converge"]:]) * self.swad_config["tolerance_ratio"]
+                            self.swad_config["average_begin"] = True
+                            loss_threshold = np.mean(
+                                val_loss[-self.swad_config["n_converge"]:]) * self.swad_config["tolerance_ratio"]
                             print("THRESHOLD: ", loss_threshold)
                         else:
                             models.get()
 
                     else:
-                        if models.qsize() < self.swad_config["n_tolerance"] - 1:
+                        if models.qsize(
+                        ) < self.swad_config["n_tolerance"] - 1:
                             continue
                         swad_model.update_parameters(models.get())
-                        if min(val_loss[-self.swad_config["n_tolerance"]:]) > loss_threshold:
-                            print("END ITER: ", ind / self.swad_config["frequency"] - self.swad_config["n_tolerance"] + 1)
+                        if min(
+                                val_loss[-self.swad_config["n_tolerance"]:]) > loss_threshold:
+                            print(
+                                "END ITER: ",
+                                ind /
+                                self.swad_config["frequency"] -
+                                self.swad_config["n_tolerance"] +
+                                1)
                             self.swad_config["average_finish"] = True
                             while models.qsize() > 0:
                                 models.get()
-
 
         self.load_checkpoint(test_domain)
         print("ERM RESULT: ", self.inference_epoch_model(test_loader)[0])
@@ -311,7 +291,9 @@ class Trainer:
         print("OUR SWAD RESULT: ", self.inference_epoch_model(test_loader)[0])
 
         self.model = swad_model.model.to(self.device)
-        print("ORIGINAL SWAD RESULT: ", self.inference_epoch_model(test_loader)[0])
+        print(
+            "ORIGINAL SWAD RESULT: ",
+            self.inference_epoch_model(test_loader)[0])
         self.save_checkpoint(test_domain)
         self.swad_config["average_begin"] = False
         self.swad_config["average_finish"] = False

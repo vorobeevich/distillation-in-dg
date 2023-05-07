@@ -39,7 +39,7 @@ class DistillTrainer(Trainer):
             self.device).long()
 
         if self.mixup is not None:
-            #images = self.mixup_on_batch(images)
+            images = self.mixup_on_batch(images)
             if self.is_logging:
                 # logging first mixup batch to wandb every domain
                 grid = make_grid(images, nrow=8)
@@ -63,8 +63,12 @@ class DistillTrainer(Trainer):
             batch_true = (ids == labels).sum()
         return batch_true, loss
 
-    def train_epoch_model(self, loader):
-        return super().train_epoch_model(loader)
+    def inference_epoch_model(self, loader):
+        mixup = self.mixup 
+        self.mixup = None
+        result = super().train_epoch_model(loader)
+        self.mixup = mixup
+        return result
 
     def train_one_domain(self, test_domain):
         self.is_logging = True
