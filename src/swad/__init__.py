@@ -1,0 +1,1 @@
+from src.swad.swa_utils import AveragedModel
