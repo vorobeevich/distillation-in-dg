@@ -1,0 +1,1 @@
+from src.logging.wandb import WandbLogger
