@@ -6,12 +6,12 @@ import torch.distributions.beta
 
 from torchvision.utils import make_grid
 
-from src.parser.parser import Parser
-from src.trainer.trainer import Trainer
+from src.parser import Parser
+from src.trainer import Trainer
 
 
 class DistillTrainer(Trainer):
-    """Class for training the model in the domain generalization mode with distillation.
+    """Class for training the model in the domain generalization mode with distillation
     """
 
     def __init__(self, model_teacher_config, run_id_teacher,
@@ -64,7 +64,7 @@ class DistillTrainer(Trainer):
         return batch_true, loss
 
     def inference_epoch_model(self, loader):
-        mixup = self.mixup 
+        mixup = self.mixup
         self.mixup = None
         result = super().inference_epoch_model(loader)
         self.mixup = mixup
@@ -74,7 +74,7 @@ class DistillTrainer(Trainer):
         self.is_logging = True
         self.load_teacher(test_domain)
         super().train_one_domain(test_domain)
-    
+
     def swad_train_one_domain(self, test_domain):
         self.is_logging = True
         self.load_teacher(test_domain)

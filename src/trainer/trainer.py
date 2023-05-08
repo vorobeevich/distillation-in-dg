@@ -1,4 +1,3 @@
-import os
 from copy import deepcopy
 from collections import defaultdict
 import queue
@@ -11,10 +10,9 @@ import torch.utils.data
 import torch.nn.functional as F
 import torch.nn as nn
 
-import src.datasets.PACS_dataset
-from src.utils.init_functions import init_object
-from src.parser.parser import Parser
-from src.swad.swa_utils import AveragedModel
+from src.datasets import create_datasets
+from src.parser import Parser
+from src.swad import AveragedModel
 
 
 class Trainer:
@@ -62,43 +60,20 @@ class Trainer:
         self.checkpoint_dir = f"saved/{self.run_id}/"
 
     def create_loaders(self, test_domain):
-        train_dataset, val_dataset, test_dataset = deepcopy(
-            self.dataset), deepcopy(
-            self.dataset), deepcopy(
-            self.dataset)
-        train_dataset["kwargs"]["dataset_type"], val_dataset["kwargs"]["dataset_type"] = [
-            "train"], ["test"]
-        test_dataset["kwargs"]["dataset_type"] = ["train", "test"]
-
-        train_dataset["kwargs"]["domain_list"] = [
-            domain for domain in train_dataset["kwargs"]["domain_list"] if domain != self.domains[test_domain]]
-        val_dataset["kwargs"]["domain_list"] = [
-            domain for domain in val_dataset["kwargs"]["domain_list"] if domain != self.domains[test_domain]]
-        test_dataset["kwargs"]["domain_list"] = [self.domains[test_domain]]
-        test_dataset["kwargs"]["augmentations"], val_dataset["kwargs"]["augmentations"] = None, None
-
-        train_dataset = init_object(src.datasets.PACS_dataset, train_dataset)
-        val_dataset = init_object(src.datasets.PACS_dataset, val_dataset)
-        test_dataset = init_object(src.datasets.PACS_dataset, test_dataset)
-
+        train_dataset, val_dataset, test_dataset = create_datasets(
+            self.dataset, self.domains[test_domain])
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
             pin_memory=True,
             num_workers=4)
-        val_loader = torch.utils.data.DataLoader(
-            val_dataset,
+        val_loader, test_loader = [torch.utils.data.DataLoader(
+            dataset,
             batch_size=self.batch_size,
             shuffle=False,
             pin_memory=True,
-            num_workers=4)
-        test_loader = torch.utils.data.DataLoader(
-            test_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            pin_memory=True,
-            num_workers=4)
+            num_workers=4) for dataset in [val_dataset, test_dataset]]
         return train_loader, val_loader, test_loader
 
     def process_batch(self, batch):
@@ -334,7 +309,7 @@ class Trainer:
             "optimizer": self.optimizer.state_dict(),
             "scheduler": self.scheduler.state_dict() if self.scheduler is not None else [],
             "config": self.config}
-        path = f'{self.checkpoint_dir}checkpoint_name_{state["name"]}_test_domain_{self.domains[test_domain]}_best.pth'
+        path = f"{self.checkpoint_dir}checkpoint_name_{state['name']}_test_domain_{self.domains[test_domain]}_best.pth"
         torch.save(state, path)
 
     def load_checkpoint(self, test_domain):
