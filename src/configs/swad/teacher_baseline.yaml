@@ -5,7 +5,7 @@ model:
   last_layer: [2048, 7]
 
 dataset: 
-  name: PACS_dataset
+  name: PACS
   kwargs: 
     domain_list: ["art_painting", "photo", "sketch", "cartoon"]
 augmentations:
@@ -40,7 +40,7 @@ scheduler: null
 num_epochs: null
 tracking_step: 500
 batch_size: 64
-seed: 2023
+seed: 1
 
 swad:
   n_converge: 3

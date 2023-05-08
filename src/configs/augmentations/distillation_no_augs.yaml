@@ -10,7 +10,7 @@ model_teacher:
   last_layer: [2048, 7]
 
 dataset: 
-  name: PACS_dataset
+  name: PACS
   kwargs: 
     domain_list: ["art_painting", "photo", "sketch", "cartoon"]
 augmentations: []
