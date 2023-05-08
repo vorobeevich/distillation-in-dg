@@ -19,4 +19,3 @@ def fix_seed(seed: int = 42) -> None:
     torch.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
