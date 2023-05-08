@@ -10,11 +10,9 @@ import torchvision.transforms
 import torch.nn as nn
 import torch
 
-from src.utils.split_data import split_pacs
-from src.utils.fix_seed import fix_seed
-from src.logging.wandb import WandbLogger
-from src.utils.get_device import get_device
-from src.utils.init_functions import init_object
+from src.datasets import split_dataset
+from src.utils import fix_seed, get_device, init_object
+from src.logging import WandbLogger
 
 
 class Parser:
@@ -39,8 +37,7 @@ class Parser:
         fix_seed(config["seed"])
 
         # split data on train and test
-        if config["dataset"]["name"] == "PACS_dataset":
-            split_pacs()
+        split_dataset(config["dataset"]["name"])
 
         # init params for trainer
         trainer_params = dict()

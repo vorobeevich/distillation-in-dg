@@ -2,7 +2,7 @@ import yaml
 import argparse
 import typing as tp
 
-from src.parser.parser import Parser
+from src.parser import Parser
 
 
 class DistillParser(Parser):
