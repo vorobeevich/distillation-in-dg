@@ -31,7 +31,7 @@ class DistillTrainer(Trainer):
         lamb = self.lamb.sample()
         images = lamb * images + (1 - lamb) * shuffled_images
         return images
-    
+
     def process_batch(self, batch):
         images, labels = batch["image"], batch["label"]
         images, labels = images.to(
@@ -56,9 +56,9 @@ class DistillTrainer(Trainer):
             probs_teacher) * self.temperature * self.temperature
 
         ids = F.softmax(logits, dim=-1).argmax(dim=-1)
-        # if we use mixup then accuracy is not defined, set it to 1
+        # if we use mixup then accuracy is not defined, set it to 0
         if self.mixup is not None:
-            batch_true = (ids == ids).sum()
+            batch_true = torch.zeros(1)
         else:
             batch_true = (ids == labels).sum()
         return batch_true, loss
@@ -66,7 +66,7 @@ class DistillTrainer(Trainer):
     def inference_epoch_model(self, loader):
         mixup = self.mixup 
         self.mixup = None
-        result = super().train_epoch_model(loader)
+        result = super().inference_epoch_model(loader)
         self.mixup = mixup
         return result
 
