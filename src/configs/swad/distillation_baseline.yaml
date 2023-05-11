@@ -50,9 +50,9 @@ swad:
   n_converge: 3
   n_tolerance: 6
   tolerance_ratio: 1.3
-  num_iterations: 50000
+  num_iterations: 25000
   frequency: 100
-  our_swad_begin: 10000
+  our_swad_begin: 2500
 
 run_id: swad_distillation_baseline
 run_id_teacher: swad_teacher_baseline

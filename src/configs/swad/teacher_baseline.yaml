@@ -48,7 +48,7 @@ swad:
   tolerance_ratio: 1.3
   num_iterations: 5000
   frequency: 100
-  our_swad_begin: 200
+  our_swad_begin: null
 
 run_id: swad_teacher_baseline
 

@@ -37,14 +37,20 @@ optimizer:
   kwargs:
     lr: 0.00005
 scheduler: null
-num_epochs: 100
-tracking_step: 10
+num_epochs: null
+tracking_step: 500
 batch_size: 64
 seed: 1
 
-swad: null
+swad:
+  n_converge: 3
+  n_tolerance: 6
+  tolerance_ratio: 1.3
+  num_iterations: 5000
+  frequency: 100
+  our_swad_begin: null
 
-run_id: swad_large_teacher.yaml
+run_id: swad_teacher_baseline
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec
