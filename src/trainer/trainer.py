@@ -121,8 +121,6 @@ class Trainer:
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
     def update_metrics(self, test_domain, name: tp.Optional[str] = None):
-        print("METRICS BEFOOOOOOOORE")
-        print(self.metrics)
         all_name = "all_metrics"
         res_name = "results"
         if name is not None:
@@ -135,8 +133,6 @@ class Trainer:
             self.metrics[all_name][f"{metric}_loss"].append(loss)
             if metric != "train":
                 self.metrics[res_name][f"{self.domains[test_domain]}_{metric}"].append(accuracy)
-        print("METRICS AFTEEEEEEEEEEEEEEEEER")
-        print(self.metrics)
 
     def create_loaders(self, test_domain, swad: bool = False):
         train_dataset, val_dataset, test_dataset = create_datasets(
@@ -209,7 +205,6 @@ class Trainer:
         
         for batch in train_loader:
             ind += 1
-            print(ind)
             batch_true, loss = self.process_batch(batch)
             self.optimizer.zero_grad()
             loss.backward()
