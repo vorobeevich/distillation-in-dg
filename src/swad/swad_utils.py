@@ -28,7 +28,7 @@ class SWAD:
                 self.final_model = AveragedModel(self.models.get())
                 self.average_begin = True
                 self.loss_threshold = np.mean(self.val_loss[-self.n_converge:]) * self.tolerance_ratio
-                print("BEGIN", self.loss_threshold)
+                print("BEGIN, IND: ", len(self.val_loss) - self.n_converge + 1, "THRESHOLD: ", self.loss_threshold)
             else:
                 self.models.get()
         else:
@@ -39,7 +39,7 @@ class SWAD:
                 self.average_finish = True
                 while self.models.qsize() > 0:
                     self.models.get()
-                print("END")
+                print("END, IND: ", len(self.val_loss) - self.n_tolerance + 1)
         
     def finish(self):
         while not self.average_finish and self.models.qsize() > 0:
