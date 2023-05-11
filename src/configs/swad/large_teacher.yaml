@@ -50,7 +50,7 @@ swad:
   frequency: 100
   our_swad_begin: null
 
-run_id: swad_teacher_baseline
+run_id: swad_large_teacher
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec
