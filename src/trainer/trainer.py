@@ -1,10 +1,9 @@
 from copy import deepcopy
 from collections import defaultdict
-import queue
 from tqdm import tqdm
 
 import pandas as pd
-import numpy as np
+import typing as tp
 
 import torch.utils.data
 import torch.nn.functional as F
@@ -12,8 +11,8 @@ import torch.nn as nn
 
 from src.datasets import create_datasets
 from src.parser import Parser
-from src.swad import AveragedModel
-
+from src.swad import AveragedModel, SWAD
+from src.utils import num_iters_loader
 
 class Trainer:
     """Class for training the model in the domain generalization mode.
@@ -59,23 +58,23 @@ class Trainer:
         self.run_id = run_id
         self.checkpoint_dir = f"saved/{self.run_id}/"
 
-    def create_loaders(self, test_domain):
-        train_dataset, val_dataset, test_dataset = create_datasets(
-            self.dataset, self.domains[test_domain])
-        train_loader = torch.utils.data.DataLoader(
-            train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
-            pin_memory=True,
-            num_workers=4)
-        val_loader, test_loader = [torch.utils.data.DataLoader(
-            dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            pin_memory=True,
-            num_workers=4) for dataset in [val_dataset, test_dataset]]
-        return train_loader, val_loader, test_loader
+    def init_metrics(self):
+        self.metrics = defaultdict(lambda: defaultdict(list))
+        self.metrics["all_metrics"]["domain"] = self.domains
+        if self.swad_config is not None:
+            self.metrics["all_metrics_erm"]["domain"] = self.domains
+            if self.swad_config["our_swad_begin"] is not None:
+                self.metrics["all_metrics_swad"]["domain"] = self.domains
 
+    def init_training(self):
+        self.model = Parser.init_model(self.model_config, self.device)
+        self.optimizer = Parser.init_optimizer(
+            self.optimizer_config, self.model)
+        self.scheduler = Parser.init_scheduler(
+            self.scheduler_config, self.optimizer)
+        if self.swad_config is not None:
+            self.swad = SWAD(self.swad_config["n_converge"], self.swad_config["n_tolerance"], self.swad_config["tolerance_ratio"])
+        
     def process_batch(self, batch):
         images, labels = batch["image"], batch["label"]
         images, labels = images.to(
@@ -90,19 +89,6 @@ class Trainer:
 
         return batch_true, loss
 
-    def init_training(self):
-        self.model = Parser.init_model(self.model_config, self.device)
-        self.optimizer = Parser.init_optimizer(
-            self.optimizer_config, self.model)
-        self.scheduler = Parser.init_scheduler(
-            self.scheduler_config, self.optimizer)
-
-    def swad_train_regime(self):
-        self.model.train()
-        for module in self.model.modules():
-            if isinstance(module, nn.BatchNorm2d):
-                module.eval()
-
     def train_epoch_model(self, loader):
         self.model.train()
         accuracy = 0
@@ -116,6 +102,9 @@ class Trainer:
             loss_sum += loss.item() * batch["image"].shape[0]
             accuracy += batch_true.item()
 
+            pbar.set_description(
+                "Accuracy on batch %f loss on batch %f" %
+                ((batch_true / batch["image"].shape[0]).item(), loss.item()))
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
     def inference_epoch_model(self, loader):
@@ -128,8 +117,50 @@ class Trainer:
                 batch_true, loss = self.process_batch(batch)
                 loss_sum += loss.item() * batch["image"].shape[0]
                 accuracy += batch_true.item()
+    
+                pbar.set_description(
+                    "Accuracy on batch %f loss on batch %f" %
+                    ((batch_true / batch["image"].shape[0]).item(), loss.item()))
 
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
+
+    def update_metrics(self, test_domain, name: tp.Optional[str] = None):
+        print("METRICS BEFOOOOOOOORE")
+        print(self.metrics)
+        all_name = "all_metrics"
+        res_name = "results"
+        if name is not None:
+            all_name += f"_{name}"
+            res_name += f"_{name}"
+        for metric, loader in zip(
+                ["train", "val", "test"], self.create_loaders(test_domain)):
+            accuracy, loss = self.inference_epoch_model(loader)
+            self.metrics[all_name][f"{metric}_accuracy"].append(accuracy)
+            self.metrics[all_name][f"{metric}_loss"].append(loss)
+            if metric != "train":
+                self.metrics[res_name][f"{self.domains[test_domain]}_{metric}"].append(accuracy)
+        print("METRICS AFTEEEEEEEEEEEEEEEEER")
+        print(self.metrics)
+
+    def create_loaders(self, test_domain, swad: bool = False):
+        train_dataset, val_dataset, test_dataset = create_datasets(
+            self.dataset, self.domains[test_domain])
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            pin_memory=True,
+            num_workers=4)
+        if swad:
+            train_loader = num_iters_loader(train_loader, self.swad_config["num_iterations"])
+
+        val_loader, test_loader = [torch.utils.data.DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            pin_memory=True,
+            num_workers=4) for dataset in [val_dataset, test_dataset]]
+        return train_loader, val_loader, test_loader
 
     def train_one_domain(self, test_domain):
         train_loader, val_loader, test_loader = self.create_loaders(
@@ -165,142 +196,87 @@ class Trainer:
             if self.scheduler is not None:
                 self.scheduler.step()
 
+        self.load_checkpoint(test_domain)
+        self.update_metrics(test_domain)
+
+    def swad_train_regime(self):
+        self.model.train()
+        for module in self.model.modules():
+            if isinstance(module, nn.BatchNorm2d):
+                module.eval()
+
     def swad_train_one_domain(self, test_domain):
-        train_loader, val_loader, test_loader = self.create_loaders(
-            test_domain)
+        train_loader, val_loader, test_loader = self.create_loaders(test_domain, True)
         max_val_accuracy = 0
         self.swad_train_regime()
         ind = 0
-        val_loss = []
-        models = queue.Queue()
+        
+        for batch in train_loader:
+            ind += 1
+            print(ind)
+            batch_true, loss = self.process_batch(batch)
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+            accuracy = batch_true.item() / batch["image"].shape[0]
+            self.logger.log_metric(
+                f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
+            self.logger.log_metric(
+                f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
 
-        while ind < self.swad_config["num_iterations"]:
-            for batch in train_loader:
-                ind += 1
-                if ind > self.swad_config["num_iterations"]:
-                    break
-                batch_true, loss = self.process_batch(batch)
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
-                accuracy = batch_true.item() / batch["image"].shape[0]
+            if self.swad_config["our_swad_begin"] is not None:
+                if ind == self.swad_config["our_swad_begin"]:
+                    our_swad_model = AveragedModel(self.model)
+                elif ind > self.swad_config["our_swad_begin"]:
+                    our_swad_model.update_parameters(deepcopy(self.model).cpu())
+
+            if ind % self.swad_config["frequency"] == 1:
+                averaged_model = AveragedModel(self.model)
+            else:
+                averaged_model.update_parameters(
+                    deepcopy(self.model).cpu())
+
+            if ind % self.swad_config["frequency"] == 0:
+                accuracy, loss = self.inference_epoch_model(val_loader)
+                self.swad_train_regime()
+                self.swad.update(loss, averaged_model.model)
                 self.logger.log_metric(
-                    f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
+                    f"{self.domains[test_domain]}.val.accuracy", accuracy, ind)
                 self.logger.log_metric(
-                    f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
+                    f"{self.domains[test_domain]}.val.loss", loss, ind)
+                if accuracy > max_val_accuracy:
+                    self.save_checkpoint(test_domain)
 
-                if ind % self.tracking_step == 0:
-                    accuracy, loss = self.inference_epoch_model(test_loader)
-                    self.swad_train_regime()
-                    self.logger.log_metric(
-                        f"{self.domains[test_domain]}.test.accuracy", accuracy, ind)
-                    self.logger.log_metric(
-                        f"{self.domains[test_domain]}.test.loss", loss, ind)
-
-                if ind >= self.swad_config["our_swad_begin"]:
-                    if ind == self.swad_config["our_swad_begin"]:
-                        our_swad_model = AveragedModel(self.model).cpu()
-                    else:
-                        our_swad_model.update_parameters(
-                            deepcopy(self.model).cpu())
-
-                if ind % self.swad_config["frequency"] == 1:
-                    averaged_model = AveragedModel(self.model).cpu()
-                else:
-                    averaged_model.update_parameters(
-                        deepcopy(self.model).cpu())
-
-                if ind % self.swad_config["frequency"] == 0:
-                    accuracy, loss = self.inference_epoch_model(val_loader)
-                    val_loss.append(loss)
-                    self.swad_train_regime()
-                    self.logger.log_metric(
-                        f"{self.domains[test_domain]}.val.accuracy", accuracy, ind)
-                    self.logger.log_metric(
-                        f"{self.domains[test_domain]}.val.loss", loss, ind)
-                    if accuracy > max_val_accuracy:
-                        self.save_checkpoint(test_domain)
-                    if self.swad_config["average_finish"]:
-                        continue
-                    models.put(averaged_model.model)
-
-                    if not self.swad_config["average_begin"]:
-                        if models.qsize() <= self.swad_config["n_converge"]:
-                            continue
-                        if min(val_loss[-self.swad_config["n_converge"]:]
-                               ) == val_loss[-self.swad_config["n_converge"]]:
-                            print(
-                                "START ITER: ",
-                                ind /
-                                self.swad_config["frequency"] -
-                                self.swad_config["n_converge"] +
-                                1)
-                            swad_model = AveragedModel(models.get())
-                            self.swad_config["average_begin"] = True
-                            loss_threshold = np.mean(
-                                val_loss[-self.swad_config["n_converge"]:]) * self.swad_config["tolerance_ratio"]
-                            print("THRESHOLD: ", loss_threshold)
-                        else:
-                            models.get()
-
-                    else:
-                        if models.qsize(
-                        ) < self.swad_config["n_tolerance"] - 1:
-                            continue
-                        swad_model.update_parameters(models.get())
-                        if min(
-                                val_loss[-self.swad_config["n_tolerance"]:]) > loss_threshold:
-                            print(
-                                "END ITER: ",
-                                ind /
-                                self.swad_config["frequency"] -
-                                self.swad_config["n_tolerance"] +
-                                1)
-                            self.swad_config["average_finish"] = True
-                            while models.qsize() > 0:
-                                models.get()
+            if ind % self.tracking_step == 0:
+                accuracy, loss = self.inference_epoch_model(test_loader)
+                self.swad_train_regime()
+                self.logger.log_metric(
+                    f"{self.domains[test_domain]}.test.accuracy", accuracy, ind)
+                self.logger.log_metric(
+                    f"{self.domains[test_domain]}.test.loss", loss, ind)
 
         self.load_checkpoint(test_domain)
-        print("ERM RESULT: ", self.inference_epoch_model(test_loader)[0])
-        self.model = our_swad_model.model.to(self.device)
-        print("OUR SWAD RESULT: ", self.inference_epoch_model(test_loader)[0])
-
-        self.model = swad_model.model.to(self.device)
-        print(
-            "ORIGINAL SWAD RESULT: ",
-            self.inference_epoch_model(test_loader)[0])
-        self.save_checkpoint(test_domain)
-        self.swad_config["average_begin"] = False
-        self.swad_config["average_finish"] = False
+        self.update_metrics(test_domain, "erm")
+        if self.swad_config["our_swad_begin"] is not None:
+            self.model = our_swad_model.model.to(self.device)
+            self.update_metrics(test_domain)
+        self.swad.finish()
+        self.model = self.swad.final_model.model.to(self.device)
+        if self.swad_config["our_swad_begin"] is not None:
+            self.update_metrics(test_domain, "swad")
+        else:
+            self.update_metrics(test_domain)
 
     def train(self):
-        all_metrics = defaultdict(list)
+        self.init_metrics()
         for i in range(len(self.domains)):
             self.init_training()
             if self.swad_config is not None:
                 self.swad_train_one_domain(i)
             else:
                 self.train_one_domain(i)
-            self.load_checkpoint(i)
-            metrics = dict()
-            # log all info
-            for metric, loader in zip(
-                    ["train", "val", "test"], self.create_loaders(i)):
-                metrics[f"{metric}_accuracy"], metrics[f"{metric}_loss"] = self.inference_epoch_model(
-                    loader)
-            for metric in metrics:
-                all_metrics[metric].append(metrics[metric])
-        all_metrics["domain"] = self.domains
-        self.logger.log_table("all_metrics", pd.DataFrame(all_metrics))
-
-        # log only val and train accuracies
-        accuracy_metrics = dict()
-        for ind, domain in enumerate(self.domains):
-            accuracy_metrics[f"{domain}_val"] = all_metrics["val_accuracy"][ind]
-            accuracy_metrics[f"{domain}_test"] = all_metrics["test_accuracy"][ind]
-        self.logger.log_table(
-            "results", pd.DataFrame(
-                accuracy_metrics, index=[1]))
+        for name in self.metrics:
+            self.logger.log_table(name, pd.DataFrame(self.metrics[name]))
 
     def save_checkpoint(self, test_domain):
         state = {
