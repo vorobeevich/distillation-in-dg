@@ -45,11 +45,11 @@ tracking_step: 50
 batch_size: 64
 seed: 1
 temperature: 5
-image_net: false
+image_net: true
 
 swad: null
 
-run_id: augs_distillation_domainbed
+run_id: augs_distillation_domainbed_and_image_net
 run_id_teacher: augs_teacher_baseline
 
 wandb_project: dist-gen

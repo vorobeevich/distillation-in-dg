@@ -45,6 +45,7 @@ tracking_step: 50
 batch_size: 64
 seed: 1
 temperature: 5
+image_net: false
 
 swad: null
 
