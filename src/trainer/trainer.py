@@ -9,6 +9,8 @@ import torch.utils.data
 import torch.nn.functional as F
 import torch.nn as nn
 
+from torchvision.utils import make_grid
+
 from src.datasets import create_datasets
 from src.parser import Parser
 from src.swad import AveragedModel, SWAD
@@ -80,6 +82,11 @@ class Trainer:
         images, labels = images.to(
             self.device).float(), labels.to(
             self.device).long()
+        if self.is_logging:
+            # logging first batch to wandb every domain
+            grid = make_grid(images, nrow=8)
+            self.logger.log_image(grid, "First batch at domain")
+            self.is_logging = False
         logits = self.model(images)
 
         loss = self.loss_function(logits, labels)
@@ -158,6 +165,7 @@ class Trainer:
         train_loader, val_loader, test_loader = self.create_loaders(
             test_domain)
         max_val_accuracy = 0
+        self.is_logging = True
 
         for i in range(1, self.num_epochs + 1):
             train_accuracy, train_loss = self.train_epoch_model(train_loader)
@@ -200,8 +208,9 @@ class Trainer:
     def swad_train_one_domain(self, test_domain):
         train_loader, val_loader, test_loader = self.create_loaders(test_domain, True)
         max_val_accuracy = 0
-        self.swad_train_regime()
+        self.is_logging = True
         ind = 0
+        self.swad_train_regime()
         
         for batch in train_loader:
             ind += 1

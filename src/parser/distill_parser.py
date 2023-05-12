@@ -17,7 +17,7 @@ class DistillParser(Parser):
         with open(args.config, "r") as stream:
             config = yaml.safe_load(stream)
         trainer_params["model_teacher_config"] = config["model_teacher"]
-        for param in ["temperature", "run_id_teacher", "mixup"]:
+        for param in ["temperature", "run_id_teacher", "mixup", "image_net"]:
             trainer_params[param] = config[param]
 
         return trainer_params

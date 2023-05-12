@@ -3,11 +3,14 @@ from tqdm import tqdm
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributions.beta
+import torch.utils.data
 
 from torchvision.utils import make_grid
 
 from src.parser import Parser
 from src.trainer import Trainer
+from src.datasets import create_datasets, ImageNet
+from src.utils import num_iters_loader
 
 
 class DistillTrainer(Trainer):
@@ -15,10 +18,11 @@ class DistillTrainer(Trainer):
     """
 
     def __init__(self, model_teacher_config, run_id_teacher,
-                 temperature, mixup=None, **kwargs):
+                 temperature, image_net, mixup=None, **kwargs):
         super().__init__(**kwargs)
-        self.run_id_teacher = run_id_teacher
         self.model_teacher_config = model_teacher_config
+        self.run_id_teacher = run_id_teacher
+        self.image_net = image_net
         self.temperature = temperature
         self.mixup = mixup
         if self.mixup is not None:
@@ -37,14 +41,14 @@ class DistillTrainer(Trainer):
         images, labels = images.to(
             self.device).float(), labels.to(
             self.device).long()
-
+        if self.is_logging:
+            # logging first batch to wandb every domain
+            grid = make_grid(images, nrow=8)
+            self.logger.log_image(grid, "First batch at domain")
+            self.is_logging = False
         if self.mixup is not None:
             images = self.mixup_on_batch(images)
-            if self.is_logging:
-                # logging first mixup batch to wandb every domain
-                grid = make_grid(images, nrow=8)
-                self.logger.log_image(grid, "Mixup_batch")
-                self.is_logging = False
+
         with torch.inference_mode():
             logits_teacher = self.model_teacher(images)
 
@@ -70,13 +74,38 @@ class DistillTrainer(Trainer):
         self.mixup = mixup
         return result
 
+    def create_loaders(self, test_domain, swad: bool = False):
+        train_dataset, val_dataset, test_dataset = create_datasets(
+            self.dataset, self.domains[test_domain])
+        if self.image_net:
+            image_net_dataset = ImageNet(len(train_dataset), train_dataset.transforms, train_dataset.augmentations)
+            train_dataset = torch.utils.data.ConcatDataset([train_dataset, image_net_dataset])
+
+
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            pin_memory=True,
+            num_workers=4)
+
+        if swad:
+            train_loader = num_iters_loader(train_loader, self.swad_config["num_iterations"])
+
+        val_loader, test_loader = [torch.utils.data.DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            pin_memory=True,
+            num_workers=4) for dataset in [val_dataset, test_dataset]]
+        return train_loader, val_loader, test_loader
+
+
     def train_one_domain(self, test_domain):
-        self.is_logging = True
         self.load_teacher(test_domain)
         super().train_one_domain(test_domain)
 
     def swad_train_one_domain(self, test_domain):
-        self.is_logging = True
         self.load_teacher(test_domain)
         super().swad_train_one_domain(test_domain)
 
