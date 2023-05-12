@@ -1,9 +1,9 @@
 import torch
 import torchvision
-from PIL import Image
+from src.datasets.base_dataset import BaseDataset
 
 
-class PACS(torch.utils.data.Dataset):
+class PACS(BaseDataset):
     """Class with standard methods for torch dataset for working with PACS dataset.
     Inherited from standard class torch.utils.data.Dataset.
     Dataset paper: https://arxiv.org/abs/1710.03077.
@@ -26,16 +26,12 @@ class PACS(torch.utils.data.Dataset):
             augmentations (torchvision.transforms.Compose,
             optional): augmentations that apply only to the train selection. Defaults to None.
         """
-        self.images = []
-        self.labels = torch.Tensor([])
+        super().__init__(transforms, augmentations)
         self.domain_list = domain_list
         for domain in domain_list:
             imgs, lbls = self.get_paths_and_labels(dataset_type, domain)
             self.images += imgs
             self.labels = torch.cat((self.labels, lbls))
-
-        self.transforms = transforms
-        self.augmentations = augmentations
 
     def get_paths_and_labels(self,
                              dataset_types: list[str],
@@ -64,45 +60,3 @@ class PACS(torch.utils.data.Dataset):
             paths += cur_paths
             labels += cur_labels
         return paths, torch.Tensor(labels)
-
-    def __len__(self) -> int:
-        """Returns the number of images in the dataset.
-
-        Returns:
-            int: dataset len
-        """
-        return len(self.images)
-
-    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
-        """Returns a picture from the dataset by its number.
-        First, the image is read along the path, augmentations are applied to it (if necessary), then transforms.
-        Also, the class label is returned.
-
-        Args:
-            idx (int): index of image
-        Returns:
-            dict[str, torch.Tensor]: dict:
-                {
-                    "image": image torch.Tensor,
-                    "label": label torch.Tensor
-                }
-        """
-        img_name = self.images[idx]
-        label = self.labels[idx]
-
-        image = Image.open(img_name)
-
-        if self.augmentations:
-            sample = {
-                'image':
-                self.augmentations(image)
-            }
-        else:
-            sample = {
-                'image': image,
-            }
-
-        sample['image'] = self.transforms(sample['image'])
-        sample['label'] = label
-
-        return sample
