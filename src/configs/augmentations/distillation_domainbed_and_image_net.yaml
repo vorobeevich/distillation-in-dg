@@ -40,7 +40,7 @@ optimizer:
   kwargs:
     lr: 0.00005
 scheduler: null
-num_epochs: 500
+num_epochs: 250
 tracking_step: 50
 batch_size: 64
 seed: 1
