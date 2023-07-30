@@ -1,0 +1,42 @@
+model: 
+  name: resnet50
+  kwargs:
+    weights: ResNet50_Weights.IMAGENET1K_V2
+  last_layer: [2048, 7]
+
+dataset: 
+  name: VLCS
+  kwargs: 
+    domain_list: ["Caltech101", "LabelMe", "SUN09", "VOC2007"]
+augmentations:
+  - name: RandomResizedCrop
+    kwargs: 
+      size: 227
+      scale: [0.8, 1.0]
+      ratio: [0.9, 1.1]
+  - name: RandomHorizontalFlip
+    kwargs: {}
+transforms:
+  - name: ToTensor
+    kwargs: {}  
+  - name: Normalize
+    kwargs:
+      mean: [0.5, 0.5, 0.5]
+      std: [0.5, 0.5, 0.5]
+
+optimizer:
+  name: Adam
+  kwargs:
+    lr: 0.00005
+scheduler: null
+num_epochs: 100
+tracking_step: 10
+batch_size: 64
+seed: 1
+
+swad: null
+
+run_id: vlcs_augs_teacher_baseline
+
+wandb_project: dist-gen
+wandb_entity: gegelyanec

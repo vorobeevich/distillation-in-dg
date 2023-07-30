@@ -2,6 +2,15 @@ import random
 import os
 import numpy as np
 
+all_domains = {
+    "PACS": ["art_painting", "cartoon", "photo", "sketch"],
+    "VLCS": ["Caltech101", "LabelMe", "SUN09", "VOC2007"]
+}
+
+all_classes = {
+    "PACS": ["dog", "elephant", "giraffe", "guitar", "horse", "house", "person"],
+    "VLCS": ["bird", "car", "chair", "dog", "person"]
+}
 
 def split_dataset(dataset_name: str, train_size: float = 0.8):
     """Split data to train and test sets for some dataset.
@@ -11,26 +20,13 @@ def split_dataset(dataset_name: str, train_size: float = 0.8):
         dataset_name (str): name of dataset.  one of 'PACS', '...'.
         train_size (float, optional): proportion of the training sample. Defaults to 0.8.
     """
-    if dataset_name == "PACS":
-        split_pacs(train_size)
-
-
-def split_pacs(train_size: float):
-    domains = ["art_painting", "cartoon", "photo", "sketch"]
-    classes = [
-        "dog",
-        "elephant",
-        "giraffe",
-        "guitar",
-        "horse",
-        "house",
-        "person"
-    ]
+    domains = all_domains[dataset_name]
+    classes = all_classes[dataset_name]
     for domain in domains:
         for label, cls in enumerate(classes):
             files = np.array(
                 sorted(
-                    os.listdir(f"data/pacs/images/{domain}/{cls}")))
+                    os.listdir(f"data/{dataset_name.lower()}/images/{domain}/{cls}")))
             n = len(files)
             all_indeces = list(np.arange(n))
             if label == 0:
@@ -39,15 +35,15 @@ def split_pacs(train_size: float):
                 regime = "a"
             # make train set
             train_indeces = random.sample(all_indeces, k=int(n * train_size))
-            with open(f"data/pacs/labels/{domain}_train.txt", regime) as f:
+            with open(f"data/{dataset_name.lower()}/labels/{domain}_train.txt", regime) as f:
                 for image in files[train_indeces]:
                     print(
-                        f"data/pacs/images/{domain}/{cls}/{image} {label}",
+                        f"data/{dataset_name.lower()}/images/{domain}/{cls}/{image} {label}",
                         file=f)
             # make test set
             test_indeces = np.setxor1d(all_indeces, train_indeces)
-            with open(f"data/pacs/labels/{domain}_test.txt", regime) as f:
+            with open(f"data/{dataset_name.lower()}/labels/{domain}_test.txt", regime) as f:
                 for image in files[test_indeces]:
                     print(
-                        f"data/pacs/images/{domain}/{cls}/{image} {label}",
+                        f"data/{dataset_name.lower()}/images/{domain}/{cls}/{image} {label}",
                         file=f)
