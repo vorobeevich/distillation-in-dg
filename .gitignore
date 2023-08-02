@@ -2,3 +2,4 @@
 data/*
 wandb/*
 saved/*
+*/.ipynb_checkpoints/*
