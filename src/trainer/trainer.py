@@ -217,7 +217,6 @@ class Trainer:
         
         for batch in train_loader:
             ind += 1
-            print(ind)
             batch_true, loss = self.process_batch(batch)
             self.optimizer.zero_grad()
             loss.backward()
