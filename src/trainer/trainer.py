@@ -100,7 +100,7 @@ class Trainer:
         self.model.train()
         accuracy = 0
         loss_sum = 0
-        pbar = loader
+        pbar = tqdm(loader)
         for batch in pbar:
             batch_true, loss = self.process_batch(batch)
             self.optimizer.zero_grad()
@@ -108,8 +108,10 @@ class Trainer:
             self.optimizer.step()
             loss_sum += loss.item() * batch["image"].shape[0]
             accuracy += batch_true.item()
-
-            
+            pbar.set_description(
+                "Accuracy on batch %f loss on batch %f" %
+                ((batch_true / batch["image"].shape[0]).item(), loss.item()))
+        
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
     def inference_epoch_model(self, loader):
@@ -117,14 +119,15 @@ class Trainer:
             self.model.eval()
             accuracy = 0
             loss_sum = 0
-            pbar = loader
+            pbar = tqdm(loader)
             for batch in pbar:
                 batch_true, loss = self.process_batch(batch)
                 loss_sum += loss.item() * batch["image"].shape[0]
                 accuracy += batch_true.item()
+                pbar.set_description(
+                "Accuracy on batch %f loss on batch %f" %
+                ((batch_true / batch["image"].shape[0]).item(), loss.item()))
     
-                
-
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
 
     def update_metrics(self, test_domain, name: tp.Optional[str] = None):
@@ -149,7 +152,7 @@ class Trainer:
             batch_size=self.batch_size,
             shuffle=True,
             pin_memory=True,
-            num_workers=4)
+            num_workers=1)
         if swad:
             train_loader = num_iters_loader(train_loader, self.swad_config["num_iterations"])
 
@@ -158,7 +161,7 @@ class Trainer:
             batch_size=self.batch_size,
             shuffle=False,
             pin_memory=True,
-            num_workers=4) for dataset in [val_dataset, test_dataset]]
+            num_workers=1) for dataset in [val_dataset, test_dataset]]
         return train_loader, val_loader, test_loader
 
     def train_one_domain(self, test_domain):
@@ -214,6 +217,7 @@ class Trainer:
         
         for batch in train_loader:
             ind += 1
+            print(ind)
             batch_true, loss = self.process_batch(batch)
             self.optimizer.zero_grad()
             loss.backward()
