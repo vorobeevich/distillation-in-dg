@@ -38,20 +38,18 @@ class BaseDataset(torch.utils.data.Dataset):
         """
         img_name = self.images[idx]
         label = self.labels[idx]
-
-        image = Image.open(img_name)
-
+        image = Image.open(img_name).convert("RGB")
         if self.augmentations:
             sample = {
-                'image':
+                "image":
                 self.augmentations(image)
             }
         else:
             sample = {
-                'image': image,
+                "image": image,
             }
 
-        sample['image'] = self.transforms(sample['image'])
-        sample['label'] = label
-
+        sample["image"] = self.transforms(sample["image"])
+        sample["label"] = label
+        
         return sample

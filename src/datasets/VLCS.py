@@ -1,5 +1,6 @@
 from src.datasets import Dataset
-
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class VLCS(Dataset):
     def __init__(
