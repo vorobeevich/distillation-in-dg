@@ -59,7 +59,7 @@ swad:
   our_swad_begin: 5000
 
 run_id: officehome_swad_distillation_baseline
-run_id_teacher: office_home_swad_teacher_baseline
+run_id_teacher: officehome_swad_teacher_baseline
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec
