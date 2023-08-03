@@ -2,12 +2,12 @@ model:
   name: resnet18
   kwargs:
     weights: ResNet18_Weights.IMAGENET1K_V1
-  last_layer: [512, 7]
+  last_layer: [512, 5]
 
 model_teacher: 
   name: resnet50
   kwargs: {}
-  last_layer: [2048, 7]
+  last_layer: [2048, 5]
 
 dataset: 
   name: VLCS

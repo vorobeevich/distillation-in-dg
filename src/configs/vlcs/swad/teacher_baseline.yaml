@@ -2,7 +2,7 @@ model:
   name: resnet50
   kwargs:
     weights: ResNet50_Weights.IMAGENET1K_V2
-  last_layer: [2048, 7]
+  last_layer: [2048, 5]
 
 dataset: 
   name: VLCS
@@ -52,7 +52,7 @@ swad:
   frequency: 100
   our_swad_begin: null
 
-run_id: vlcs_teacher_baseline
+run_id: vlcs_swad_teacher_baseline
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec
