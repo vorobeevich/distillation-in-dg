@@ -13,7 +13,7 @@ curl -o data/vlcs/vlcs_download_file -L "https://drive.google.com/uc?export=down
 
 # unpacking download file
 echo "Unpacking images... |"
-unzip data/vlcs/vlcs_download_file -d  data/vlcs/
+tar -xvf data/vlcs/vlcs_download_file -C  data/vlcs/
 
 # remove cache file
 rm data/vlcs/vlcs_download_file

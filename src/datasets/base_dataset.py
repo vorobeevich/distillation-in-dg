@@ -38,7 +38,7 @@ class BaseDataset(torch.utils.data.Dataset):
         """
         img_name = self.images[idx]
         label = self.labels[idx]
-        image = Image.open(img_name).convert("RGB")
+        image = Image.open(img_name)
         if self.augmentations:
             sample = {
                 "image":
