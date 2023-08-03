@@ -1,3 +1,4 @@
+# PACS from https://github.com/facebookresearch/DomainBed
 # create pacs images data
 
 # make directory for all data

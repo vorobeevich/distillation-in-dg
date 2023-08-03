@@ -1,3 +1,4 @@
+# PACS from https://github.com/liyiying/Feature_Critic
 # create pacs images data
 
 # make directory for all data
