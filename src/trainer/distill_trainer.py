@@ -59,7 +59,7 @@ class DistillTrainer(Trainer):
             probs_student,
             probs_teacher) * self.temperature * self.temperature
 
-        ids = F.softmax(logits, dim=-1).argmax(dim=-1)
+        ids = logits.argmax(dim=-1)
         # if we use mixup then accuracy is not defined, set it to 0
         if self.mixup is not None:
             batch_true = torch.zeros(1)

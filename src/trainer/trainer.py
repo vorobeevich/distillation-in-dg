@@ -16,6 +16,7 @@ from src.parser import Parser
 from src.swad import AveragedModel, SWAD
 from src.utils import num_iters_loader
 
+
 class Trainer:
     """Class for training the model in the domain generalization mode.
     """
@@ -91,7 +92,7 @@ class Trainer:
 
         loss = self.loss_function(logits, labels)
 
-        ids = F.softmax(logits, dim=-1).argmax(dim=-1)
+        ids = logits.argmax(dim=-1)
         batch_true = (ids == labels).sum()
 
         return batch_true, loss
@@ -129,6 +130,21 @@ class Trainer:
                 ((batch_true / batch["image"].shape[0]).item(), loss.item()))
     
         return accuracy / len(loader.dataset), loss_sum / len(loader.dataset)
+
+    def calc_accuracy(self, model, loader):
+        with torch.inference_mode():
+            model.to(self.device)
+            model.eval()
+            accuracy = 0
+            for batch in loader:
+                images, labels = batch["image"], batch["label"]
+                images, labels = images.to(self.device).float(), labels.to(self.device).long()
+                logits = model(images)
+                ids = logits.argmax(dim=-1)
+                batch_true = (ids == labels).sum()
+                accuracy += batch_true.item()
+            model.cpu()
+        return accuracy / len(loader.dataset)
 
     def update_metrics(self, test_domain, name: tp.Optional[str] = None):
         all_name = "all_metrics"
@@ -230,8 +246,15 @@ class Trainer:
             if self.swad_config["our_swad_begin"] is not None:
                 if ind == self.swad_config["our_swad_begin"]:
                     our_swad_model = AveragedModel(self.model)
+                    eoa_model = deepcopy(our_swad_model)
+                    max_val_eoa_accuracy = self.calc_accuracy(eoa_model.model, val_loader)
+
                 elif ind > self.swad_config["our_swad_begin"]:
                     our_swad_model.update_parameters(deepcopy(self.model).cpu())
+                    accuracy = self.calc_accuracy(eoa_model.model, val_loader)
+                    if accuracy > max_val_eoa_accuracy:
+                        eoa_model = deepcopy(our_swad_model)
+                        max_val_eoa_accuracy = accuracy
 
             if ind % self.swad_config["frequency"] == 1:
                 averaged_model = AveragedModel(self.model)
@@ -248,6 +271,7 @@ class Trainer:
                 self.logger.log_metric(
                     f"{self.domains[test_domain]}.val.loss", loss, ind)
                 if accuracy > max_val_accuracy:
+                    max_val_accuracy = accuracy
                     self.save_checkpoint(test_domain)
 
             if ind % self.tracking_step == 0:
@@ -263,8 +287,11 @@ class Trainer:
         if self.swad_config["our_swad_begin"] is not None:
             self.model = our_swad_model.model.to(self.device)
             self.update_metrics(test_domain)
-        self.swad.finish()
-        self.model = self.swad.final_model.model.to(self.device)
+            self.model = eoa_model.model.to(self.device)
+            self.update_metrics(test_domain, "eoa")
+        if self.swad.final_model is not None:
+            self.swad.finish()
+            self.model = self.swad.final_model.model.to(self.device)
         if self.swad_config["our_swad_begin"] is not None:
             self.update_metrics(test_domain, "swad")
         else:

@@ -14,6 +14,7 @@ class SWAD:
         self.models = queue.Queue()
         self.average_begin = False
         self.average_finish = False
+        self.final_model = None
 
     def update(self, loss: float, model: nn.Module):
         if self.average_finish:
