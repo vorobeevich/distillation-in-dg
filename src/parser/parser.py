@@ -37,7 +37,7 @@ class Parser:
         fix_seed(config["seed"])
 
         # split data on train and test
-        split_dataset(config["dataset"]["name"])
+        split_dataset(config["dataset"]["name"], config["seed"])
 
         # init params for trainer
         trainer_params = dict()
@@ -48,6 +48,9 @@ class Parser:
             trainer_params[param] = config[param]
         for param in ["model", "optimizer", "scheduler", "swad"]:
             trainer_params[f"{param}_config"] = config[param]
+
+        # set seed in dataset config
+        trainer_params["dataset"]["kwargs"]["seed"] = config["seed"]
 
         # init run_id
         if config["run_id"] is None:

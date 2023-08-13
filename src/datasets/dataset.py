@@ -8,6 +8,7 @@ class Dataset(BaseDataset):
             dataset_name: str,
             dataset_type: list[str],
             domain_list: list[str],
+            seed: int,
             transforms: torchvision.transforms.Compose,
             augmentations: torchvision.transforms.Compose = None) -> None:
 
@@ -15,6 +16,7 @@ class Dataset(BaseDataset):
         self.dataset_name = dataset_name
         self.domain_list = domain_list
         self.dataset_type = dataset_type
+        self.seed = seed
 
         for domain in domain_list:
             imgs, lbls = self.get_paths_and_labels(self.dataset_type, domain)
@@ -38,7 +40,7 @@ class Dataset(BaseDataset):
         paths = []
         labels = []
         for ds_type in dataset_types:
-            filepath = f"data/{self.dataset_name}/labels/{domain}_{ds_type}.txt"
+            filepath = f"data/{self.dataset_name}/labels/{domain}_{ds_type}_{self.seed}.txt"
             f = open(filepath, 'r')
             lines = f.readlines()
             f.close()
