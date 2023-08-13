@@ -16,10 +16,13 @@ dataset:
 augmentations:
   - name: RandomResizedCrop
     kwargs: 
-      size: 227
+      size: 224
   - name: RandomHorizontalFlip
     kwargs: {}
 transforms:
+  - name: Resize
+    kwargs:
+      size: [224, 224]
   - name: ToTensor
     kwargs: {}  
   - name: Normalize

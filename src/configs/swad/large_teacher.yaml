@@ -11,9 +11,8 @@ dataset:
 augmentations:
   - name: RandomResizedCrop
     kwargs: 
-      size: 227
-      scale: [0.8, 1.0]
-      ratio: [0.9, 1.1]
+      size: 224
+      scale: [0.7, 1.0]
   - name: RandomHorizontalFlip
     kwargs: {}
   - name: ColorJitter
@@ -25,6 +24,9 @@ augmentations:
   - name: RandomGrayscale
     kwargs: {}
 transforms:
+  - name: Resize
+    kwargs:
+      size: [224, 224]
   - name: ToTensor
     kwargs: {}  
   - name: Normalize
