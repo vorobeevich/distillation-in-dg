@@ -1,0 +1,65 @@
+model: 
+  name: resnet18
+  kwargs:
+    weights: ResNet18_Weights.IMAGENET1K_V1
+  last_layer: [512, 5]
+
+model_teacher: 
+  name: resnet50
+  kwargs: {}
+  last_layer: [2048, 5]
+
+dataset: 
+  name: VLCS
+  kwargs: 
+    domain_list: ["Caltech101", "LabelMe", "SUN09", "VOC2007"]
+augmentations:
+  - name: RandomResizedCrop
+    kwargs: 
+      size: 224
+  - name: RandomHorizontalFlip
+    kwargs: {}
+  - name: ColorJitter
+    kwargs: 
+      brightness: 0.3
+      contrast: 0.3
+      saturation: 0.3
+      hue: 0.3
+  - name: RandomGrayscale
+    kwargs: {}
+transforms:
+  - name: Resize
+    kwargs:
+      size: [224, 224]
+  - name: ToTensor
+    kwargs: {}  
+  - name: Normalize
+    kwargs:
+      mean: [0.5, 0.5, 0.5]
+      std: [0.5, 0.5, 0.5]
+mixup: null
+optimizer:
+  name: Adam
+  kwargs:
+    lr: 0.00005
+scheduler: null
+num_epochs: null
+tracking_step: 5000
+batch_size: 64
+seed: 2
+temperature: 5
+image_net: false
+
+swad:
+  n_converge: 3
+  n_tolerance: 6
+  tolerance_ratio: 1.3
+  num_iterations: 50000
+  frequency: 100
+  our_swad_begin: 5000
+
+run_id: vlcs_swad_distillation_baseline_2
+run_id_teacher: vlcs_swad_teacher_baseline_2
+
+wandb_project: dist-gen
+wandb_entity: gegelyanec

@@ -1,8 +1,8 @@
 model: 
-  name: resnet18
+  name: resnet50
   kwargs:
-    weights: ResNet18_Weights.IMAGENET1K_V1
-  last_layer: [512, 65]
+    weights: ResNet50_Weights.IMAGENET1K_V2
+  last_layer: [2048, 65]
 
 dataset: 
   name: OfficeHome
@@ -42,7 +42,7 @@ scheduler: null
 num_epochs: null
 tracking_step: 500
 batch_size: 64
-seed: 1
+seed: 2
 
 swad:
   n_converge: 3
@@ -52,7 +52,7 @@ swad:
   frequency: 100
   our_swad_begin: null
 
-run_id: officehome_swad_student_baseline
+run_id: officehome_swad_teacher_baseline_2
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec

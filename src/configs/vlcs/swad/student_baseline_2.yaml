@@ -1,13 +1,13 @@
 model: 
-  name: resnet50
+  name: resnet18
   kwargs:
-    weights: ResNet50_Weights.IMAGENET1K_V2
-  last_layer: [2048, 65]
+    weights: ResNet18_Weights.IMAGENET1K_V1
+  last_layer: [512, 5]
 
 dataset: 
-  name: OfficeHome
+  name: VLCS
   kwargs: 
-    domain_list: ["Art", "Clipart", "Product", "Real_World"]
+    domain_list: ["Caltech101", "LabelMe", "SUN09", "VOC2007"]
 augmentations:
   - name: RandomResizedCrop
     kwargs: 
@@ -42,7 +42,7 @@ scheduler: null
 num_epochs: null
 tracking_step: 500
 batch_size: 64
-seed: 1
+seed: 2
 
 swad:
   n_converge: 3
@@ -52,7 +52,7 @@ swad:
   frequency: 100
   our_swad_begin: null
 
-run_id: officehome_swad_teacher_baseline
+run_id: vlcs_swad_student_baseline_2
 
 wandb_project: dist-gen
 wandb_entity: gegelyanec
