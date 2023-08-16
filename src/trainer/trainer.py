@@ -251,10 +251,11 @@ class Trainer:
 
                 elif ind > self.swad_config["our_swad_begin"]:
                     our_swad_model.update_parameters(deepcopy(self.model).cpu())
-                    accuracy = self.calc_accuracy(eoa_model.model, val_loader)
-                    if accuracy > max_val_eoa_accuracy:
-                        eoa_model = deepcopy(our_swad_model)
-                        max_val_eoa_accuracy = accuracy
+                    if ind % self.swad_config["frequency"] == 0:
+                        accuracy = self.calc_accuracy(our_swad_model.model, val_loader)
+                        if accuracy > max_val_eoa_accuracy:
+                            eoa_model = deepcopy(our_swad_model)
+                            max_val_eoa_accuracy = accuracy
 
             if ind % self.swad_config["frequency"] == 1:
                 averaged_model = AveragedModel(self.model)
