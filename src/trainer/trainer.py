@@ -293,6 +293,7 @@ class Trainer:
         if self.swad.final_model is not None:
             self.swad.finish()
             self.model = self.swad.final_model.model.to(self.device)
+            self.save_checkpoint()
         if self.swad_config["our_swad_begin"] is not None:
             self.update_metrics(test_domain, "swad")
         else:
