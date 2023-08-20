@@ -13,6 +13,12 @@ parser.add_argument(
     required=True
 )
 parser.add_argument(
+    "--test",
+    nargs="+",
+    help="Domains for testing",
+    required=True
+)
+parser.add_argument(
     "--device",
     default="0",
     type=str,

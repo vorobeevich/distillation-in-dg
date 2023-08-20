@@ -42,6 +42,8 @@ class Parser:
         # init params for trainer
         trainer_params = dict()
 
+        trainer_params["test_domains"] = args.test 
+
         # send some params directly to trainer
         for param in ["dataset", "num_epochs",
                       "batch_size", "run_id", "tracking_step"]:

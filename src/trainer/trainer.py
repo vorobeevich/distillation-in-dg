@@ -23,6 +23,7 @@ class Trainer:
 
     def __init__(
             self,
+            test_domains,
             config,
             device,
             model_config,
@@ -35,6 +36,7 @@ class Trainer:
             batch_size,
             run_id,
             logger):
+        self.test_domains = test_domains
         self.config = config
 
         self.device = device
@@ -42,7 +44,6 @@ class Trainer:
         self.model_config = model_config
 
         self.dataset = dataset
-        self.domains = dataset["kwargs"]["domain_list"]
 
         self.loss_function = nn.CrossEntropyLoss()
         self.optimizer_config = optimizer_config
@@ -63,11 +64,11 @@ class Trainer:
 
     def init_metrics(self):
         self.metrics = defaultdict(lambda: defaultdict(list))
-        self.metrics["all_metrics"]["domain"] = self.domains
+        self.metrics["all_metrics"]["domain"] = self.test_domains
         if self.swad_config is not None:
-            self.metrics["all_metrics_erm"]["domain"] = self.domains
+            self.metrics["all_metrics_erm"]["domain"] = self.test_domains
             if self.swad_config["our_swad_begin"] is not None:
-                self.metrics["all_metrics_swad"]["domain"] = self.domains
+                self.metrics["all_metrics_swad"]["domain"] = self.test_domains
 
     def init_training(self):
         self.model = Parser.init_model(self.model_config, self.device)
@@ -158,11 +159,11 @@ class Trainer:
             self.metrics[all_name][f"{metric}_accuracy"].append(accuracy)
             self.metrics[all_name][f"{metric}_loss"].append(loss)
             if metric != "train":
-                self.metrics[res_name][f"{self.domains[test_domain]}_{metric}"].append(accuracy)
+                self.metrics[res_name][f"{self.test_domains[test_domain]}_{metric}"].append(accuracy)
 
     def create_loaders(self, test_domain, swad: bool = False):
         train_dataset, val_dataset, test_dataset = create_datasets(
-            self.dataset, self.domains[test_domain])
+            self.dataset, self.test_domains[test_domain])
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=self.batch_size,
@@ -189,17 +190,17 @@ class Trainer:
         for i in range(1, self.num_epochs + 1):
             train_accuracy, train_loss = self.train_epoch_model(train_loader)
             self.logger.log_metric(
-                f"{self.domains[test_domain]}.train.accuracy",
+                f"{self.test_domains[test_domain]}.train.accuracy",
                 train_accuracy,
                 i)
             self.logger.log_metric(
-                f"{self.domains[test_domain]}.train.loss", train_loss, i)
+                f"{self.test_domains[test_domain]}.train.loss", train_loss, i)
 
             val_accuracy, val_loss = self.inference_epoch_model(val_loader)
             self.logger.log_metric(
-                f"{self.domains[test_domain]}.val.accuracy", val_accuracy, i)
+                f"{self.test_domains[test_domain]}.val.accuracy", val_accuracy, i)
             self.logger.log_metric(
-                f"{self.domains[test_domain]}.val.loss", val_loss, i)
+                f"{self.test_domains[test_domain]}.val.loss", val_loss, i)
             if val_accuracy > max_val_accuracy:
                 max_val_accuracy = val_accuracy
                 self.save_checkpoint(test_domain)
@@ -208,9 +209,9 @@ class Trainer:
                 test_accuracy, test_loss = self.inference_epoch_model(
                     test_loader)
                 self.logger.log_metric(
-                    f"{self.domains[test_domain]}.test.accuracy", test_accuracy, i)
+                    f"{self.test_domains[test_domain]}.test.accuracy", test_accuracy, i)
                 self.logger.log_metric(
-                    f"{self.domains[test_domain]}.test.loss", test_loss, i)
+                    f"{self.test_domains[test_domain]}.test.loss", test_loss, i)
 
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -239,9 +240,9 @@ class Trainer:
             self.optimizer.step()
             accuracy = batch_true.item() / batch["image"].shape[0]
             self.logger.log_metric(
-                f"{self.domains[test_domain]}.train.accuracy", accuracy, ind)
+                f"{self.test_domains[test_domain]}.train.accuracy", accuracy, ind)
             self.logger.log_metric(
-                f"{self.domains[test_domain]}.train.loss", loss.item(), ind)
+                f"{self.test_domains[test_domain]}.train.loss", loss.item(), ind)
 
             if self.swad_config["our_swad_begin"] is not None:
                 if ind == self.swad_config["our_swad_begin"]:
@@ -268,9 +269,9 @@ class Trainer:
                 self.swad_train_regime()
                 self.swad.update(loss, averaged_model.model)
                 self.logger.log_metric(
-                    f"{self.domains[test_domain]}.val.accuracy", accuracy, ind)
+                    f"{self.test_domains[test_domain]}.val.accuracy", accuracy, ind)
                 self.logger.log_metric(
-                    f"{self.domains[test_domain]}.val.loss", loss, ind)
+                    f"{self.test_domains[test_domain]}.val.loss", loss, ind)
                 if accuracy > max_val_accuracy:
                     max_val_accuracy = accuracy
                     self.save_checkpoint(test_domain)
@@ -279,9 +280,9 @@ class Trainer:
                 accuracy, loss = self.inference_epoch_model(test_loader)
                 self.swad_train_regime()
                 self.logger.log_metric(
-                    f"{self.domains[test_domain]}.test.accuracy", accuracy, ind)
+                    f"{self.test_domains[test_domain]}.test.accuracy", accuracy, ind)
                 self.logger.log_metric(
-                    f"{self.domains[test_domain]}.test.loss", loss, ind)
+                    f"{self.test_domains[test_domain]}.test.loss", loss, ind)
 
         self.load_checkpoint(test_domain)
         self.update_metrics(test_domain, "erm")
@@ -293,7 +294,7 @@ class Trainer:
         if self.swad.final_model is not None:
             self.swad.finish()
             self.model = self.swad.final_model.model.to(self.device)
-            self.save_checkpoint()
+            self.save_checkpoint(test_domain)
         if self.swad_config["our_swad_begin"] is not None:
             self.update_metrics(test_domain, "swad")
         else:
@@ -301,7 +302,7 @@ class Trainer:
 
     def train(self):
         self.init_metrics()
-        for i in range(len(self.domains)):
+        for i in range(len(self.test_domains)):
             self.init_training()
             if self.swad_config is not None:
                 self.swad_train_one_domain(i)
@@ -317,12 +318,12 @@ class Trainer:
             "optimizer": self.optimizer.state_dict(),
             "scheduler": self.scheduler.state_dict() if self.scheduler is not None else [],
             "config": self.config}
-        path = f"{self.checkpoint_dir}checkpoint_name_{state['name']}_test_domain_{self.domains[test_domain]}_best.pth"
+        path = f"{self.checkpoint_dir}checkpoint_name_{state['name']}_test_domain_{self.test_domains[test_domain]}_best.pth"
         torch.save(state, path)
 
     def load_checkpoint(self, test_domain):
         self.model = Parser.init_model(self.model_config, self.device)
         model_path = f"saved/{self.run_id}/checkpoint_name_{self.model_config['name']}"
-        model_path += f"_test_domain_{self.domains[test_domain]}_best.pth"
+        model_path += f"_test_domain_{self.test_domains[test_domain]}_best.pth"
         checkpoint = torch.load(model_path)
         self.model.load_state_dict(checkpoint["model"])

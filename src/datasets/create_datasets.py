@@ -4,7 +4,7 @@ import src.datasets
 from src.utils import init_object
 
 
-def create_datasets(dataset, test_domain: int):
+def create_datasets(dataset, test_domain: str):
     train_dataset, val_dataset, test_dataset = deepcopy(
         dataset), deepcopy(
         dataset), deepcopy(

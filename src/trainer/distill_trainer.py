@@ -76,7 +76,7 @@ class DistillTrainer(Trainer):
 
     def create_loaders(self, test_domain, swad: bool = False):
         train_dataset, val_dataset, test_dataset = create_datasets(
-            self.dataset, self.domains[test_domain])
+            self.dataset, self.test_domains[test_domain])
         if self.image_net:
             image_net_dataset = ImageNet(len(train_dataset), train_dataset.transforms, train_dataset.augmentations)
             train_dataset = torch.utils.data.ConcatDataset([train_dataset, image_net_dataset])
@@ -113,7 +113,7 @@ class DistillTrainer(Trainer):
         self.model_teacher = Parser.init_model(
             self.model_teacher_config, self.device)
         model_teacher_path = f'saved/{self.run_id_teacher}/checkpoint_name_{self.model_teacher_config["name"]}'
-        model_teacher_path += f"_test_domain_{self.domains[test_domain]}_best.pth"
+        model_teacher_path += f"_test_domain_{self.test_domains[test_domain]}_best.pth"
         checkpoint = torch.load(model_teacher_path)
         self.model_teacher.load_state_dict(checkpoint["model"])
         for param in self.model_teacher.parameters():
