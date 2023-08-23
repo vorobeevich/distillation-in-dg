@@ -169,7 +169,7 @@ class Trainer:
             batch_size=self.batch_size,
             shuffle=True,
             pin_memory=True,
-            num_workers=16)
+            num_workers=4)
         if swad:
             train_loader = num_iters_loader(train_loader, self.swad_config["num_iterations"])
 
@@ -178,7 +178,7 @@ class Trainer:
             batch_size=self.batch_size,
             shuffle=False,
             pin_memory=True,
-            num_workers=16) for dataset in [val_dataset, test_dataset]]
+            num_workers=4) for dataset in [val_dataset, test_dataset]]
         return train_loader, val_loader, test_loader
 
     def train_one_domain(self, test_domain):
