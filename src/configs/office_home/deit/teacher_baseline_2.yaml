@@ -1,6 +1,6 @@
 model: 
   name: facebook/deit-small-distilled-patch16-224
-  num_labels: 7
+  num_labels: 65
 
 dataset: 
   name: OfficeHome
