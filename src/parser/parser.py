@@ -9,6 +9,7 @@ import torchvision.models
 import torchvision.transforms
 import torch.nn as nn
 import torch
+from transformers import AutoImageProcessor, DeiTForImageClassification
 
 from src.datasets import split_dataset
 from src.utils import fix_seed, get_device, init_object
@@ -93,13 +94,16 @@ class Parser:
     @staticmethod
     def init_model(config, device):
         # init model params
-        model = init_object(torchvision.models, config)
-        model.fc = nn.Linear(*config["last_layer"])
-
-        # prepare for GPU training
-        model.to(device)
-
-        return model
+        if config["name"].startswith("resnet"):
+            model = init_object(torchvision.models, config)
+            model.fc = nn.Linear(*config["last_layer"])
+            model.to(device)
+            return model
+        else:
+            processor = AutoImageProcessor.from_pretrained(config["name"], do_resize=False, do_rescale=False, do_center_crop=False,
+                                                           do_normalize=False)
+            model = DeiTForImageClassification.from_pretrained(config["name"], num_labels=config["num_labels"]).to(device)
+            return model, processor
 
     @staticmethod
     def init_optimizer(config, model):
