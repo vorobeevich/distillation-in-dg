@@ -151,8 +151,15 @@ class Trainer:
             accuracy = 0
             for batch in loader:
                 images, labels = batch["image"], batch["label"]
-                images, labels = images.to(self.device).float(), labels.to(self.device).long()
-                logits = model(images)
+                if self.processor is not None:
+                    images = self.processor(images=images, return_tensors="pt")
+                images, labels = images.to(self.device), labels.to(self.device).long()
+                if self.processor is None:
+                    images = images.float()
+                if self.processor is None:
+                    logits = self.model(images)
+                else:
+                    logits = self.model(**images).logits
                 ids = logits.argmax(dim=-1)
                 batch_true = (ids == labels).sum()
                 accuracy += batch_true.item()
