@@ -35,15 +35,6 @@ class DistillTrainer(Trainer):
         lamb = self.lamb.sample()
         images = lamb * images + (1 - lamb) * shuffled_images
         return images
-
-    def process_batch(self, batch):
-
-        loss = self.loss_function(logits, labels)
-
-        ids = logits.argmax(dim=-1)
-        batch_true = (ids == labels).sum()
-
-        return batch_true, loss
     
     def process_batch(self, batch):
         images, labels = batch["image"], batch["label"]
