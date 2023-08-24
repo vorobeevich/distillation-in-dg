@@ -37,11 +37,24 @@ class DistillTrainer(Trainer):
         return images
 
     def process_batch(self, batch):
+
+        loss = self.loss_function(logits, labels)
+
+        ids = logits.argmax(dim=-1)
+        batch_true = (ids == labels).sum()
+
+        return batch_true, loss
+    
+    def process_batch(self, batch):
         images, labels = batch["image"], batch["label"]
+        if self.processor is not None:
+            images = self.processor(images=images, return_tensors="pt")
         images, labels = images.to(
-            self.device).float(), labels.to(
+            self.device), labels.to(
             self.device).long()
-        if self.is_logging:
+        if self.processor is None:
+            images = images.float()
+        if self.is_logging and self.processor is None:
             # logging first batch to wandb every domain
             grid = make_grid(images, nrow=8)
             self.logger.log_image(grid, "First batch at domain")
@@ -50,9 +63,16 @@ class DistillTrainer(Trainer):
             images = self.mixup_on_batch(images)
 
         with torch.inference_mode():
-            logits_teacher = self.model_teacher(images)
+            if self.processor is None:
+                logits_teacher = self.model_teacher(images)
+            else:
+                logits_teacher = self.model_teacher(**images).logits
 
-        logits = self.model(images)
+        if self.processor is None:
+                logits = self.model(images)
+        else:
+            logits = self.model(**images).logits
+
         probs_student, probs_teacher = F.log_softmax(
             logits / self.temperature, dim=-1), F.softmax(logits_teacher / self.temperature, dim=-1)
         loss = self.loss_function(
@@ -110,9 +130,11 @@ class DistillTrainer(Trainer):
         super().swad_train_one_domain(test_domain)
 
     def load_teacher(self, test_domain):
-        self.model_teacher = Parser.init_model(
-            self.model_teacher_config, self.device)
-        model_teacher_path = f'saved/{self.run_id_teacher}/checkpoint_name_{self.model_teacher_config["name"]}'
+        if self.model_teacher_config["name"].startswith("resnet"):
+            self.model_teacher, self.processor = Parser.init_model(self.model_teacher_config, self.device), None
+        else:
+            self.model_teacher, self.processor = Parser.init_model(self.model_teacher_config, self.device)
+        model_teacher_path = f'saved/{self.run_id_teacher}/checkpoint_name_{self.model_teacher_config["name"].replace("/", "")}'
         model_teacher_path += f"_test_domain_{self.test_domains[test_domain]}_best.pth"
         checkpoint = torch.load(model_teacher_path)
         self.model_teacher.load_state_dict(checkpoint["model"])
