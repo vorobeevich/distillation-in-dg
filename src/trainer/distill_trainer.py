@@ -60,7 +60,7 @@ class DistillTrainer(Trainer):
                 logits_teacher = self.model_teacher(**images).logits
 
         if self.processor is None:
-                logits = self.model(images)
+            logits = self.model(images)
         else:
             logits = self.model(**images).logits
 
