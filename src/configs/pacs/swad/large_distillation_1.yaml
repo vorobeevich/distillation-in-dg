@@ -1,7 +1,7 @@
 model: 
   name: resnet152
   kwargs:
-    weights: ResNet18_Weights.IMAGENET1K_V2
+    weights: ResNet152_Weights.IMAGENET1K_V2
   last_layer: [2048, 7]
 
 model_teacher: 
