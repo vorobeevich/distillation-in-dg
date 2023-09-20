@@ -7,7 +7,7 @@ Valeriy Berezovskiy, Nikita Morozov
 
 # Data
 
-Load the necessary datasets using the commands:
+Load the datasets using the commands:
 
 ```chmod ./src/scripts/load_pacs.sh 777```
 
