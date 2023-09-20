@@ -1,7 +1,7 @@
 # Intro
 This repository contains the implementation code for paper:
 
-Weight Averaging Improves Knowledge Distillation under Domain Shift
+**Weight Averaging Improves Knowledge Distillation under Domain Shift**
 
 Valeriy Berezovskiy, Nikita Morozov
 
