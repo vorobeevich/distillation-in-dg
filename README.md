@@ -3,6 +3,8 @@ Official implementation of **[Weight Averaging Improves Knowledge Distillation u
 
 Valeriy Berezovskiy, Nikita Morozov
 
+ICCV 2023 OOD-CV Workshop
+
 # Data
 
 Load the datasets using the commands:
