@@ -3,8 +3,6 @@ Official implementation of **[Weight Averaging Improves Knowledge Distillation u
 
 Valeriy Berezovskiy, Nikita Morozov
 
-ICCV 2023 OOD-CV Workshop
-
 # Data
 
 Load the datasets using the commands:
@@ -35,4 +33,15 @@ Install the libraries from the requirements.txt. Torch versions may differ depen
 # Visualization
 
 All experiments were logged using wandb library: <https://wandb.ai/gegelyanec/dist-gen?workspace=user-gegelyanec>.
+
+# Citation
+
+```
+@article{berezovskiy2023weight,
+  title={Weight Averaging Improves Knowledge Distillation under Domain Shift},
+  author={Berezovskiy, Valeriy and Morozov, Nikita},
+  journal={arXiv preprint arXiv:2309.11446},
+  year={2023}
+}
+```
  
