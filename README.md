@@ -1,7 +1,21 @@
-# Intro
-Official implementation of **[Weight Averaging Improves Knowledge Distillation under Domain Shift](https://arxiv.org/abs/2309.11446)**.
+# Introduction
+Official implementation of **[Weight Averaging Improves Knowledge Distillation under Domain Shift](https://arxiv.org/abs/2309.11446)**
 
 Valeriy Berezovskiy, Nikita Morozov
+
+[ICCV 2023 Out Of Distribution Generalization in Computer Vision Workshop](https://www.ood-cv.org/)
+
+# Preparation
+
+We **highly** recommend using [conda](https://www.anaconda.com/download) for experiments.
+
+After installation, make a new environment:
+
+```conda create --name dist```
+
+```conda activate dist```
+
+Install the libraries from the requirements.txt. [Torch](<https://pytorch.org/get-started/locally/>) versions may differ depending on your GPU.
 
 # Data
 
@@ -12,15 +26,6 @@ Load the datasets using the commands:
 ```./src/scripts/load_pacs.sh```
 
 # Usage
-We **highly** recommend using conda for experiments: <https://www.anaconda.com/download>.
-
-After installation, make a new environment:
-
-```conda create --name dist```
-
-```conda activate dist```
-
-Install the libraries from the requirements.txt. Torch versions may differ depending on your GPU: <https://pytorch.org/get-started/locally/>
 
 **independent** learning on Cross Entropy:
 
@@ -32,7 +37,7 @@ Install the libraries from the requirements.txt. Torch versions may differ depen
 
 # Visualization
 
-All experiments were logged using wandb library: <https://wandb.ai/gegelyanec/dist-gen?workspace=user-gegelyanec>.
+All experiments were logged using [wandb](<https://wandb.ai/gegelyanec/dist-gen?workspace=user-gegelyanec>) library: .
 
 # Citation
 
@@ -43,5 +48,7 @@ All experiments were logged using wandb library: <https://wandb.ai/gegelyanec/di
   journal={arXiv preprint arXiv:2309.11446},
   year={2023}
 }
+
+
 ```
  
