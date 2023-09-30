@@ -33,11 +33,11 @@ Load **PACS** and **Office-Home** datasets:
 
 **independent** learning on Cross Entropy:
 
-```python src/scripts/train.py --device [ID OF CUDA DEVICE] --config src/configs/[SELECT CONFIG TO RUN] --test_domain [TEST_DOMAINS SETS]```
+```python src/scripts/train.py --device [ID OF CUDA DEVICE] --config src/configs/[SELECT CONFIG TO RUN] --test [TEST_DOMAINS SETS]```
 
 **distillation:**
 
-```python src/scripts/train.py --device [ID OF CUDA DEVICE] --config src/configs/[SELECT CONFIG TO RUN] --test_domain [TEST_DOMAINS SETS] --dist```
+```python src/scripts/train.py --device [ID OF CUDA DEVICE] --config src/configs/[SELECT CONFIG TO RUN] --test [TEST_DOMAINS SETS] --dist```
 
 For **PACS** _art_painting, photo, sketch, cartoon_ domains are available to select. You can select several at once: _--test photo cartoon_. For **Office-Home** _art, clipart, product, real_world_ domains are available to select. 
 Check id of required **GPU** device using ```nvidia-smi``` command. Before starting distillation, you need to train config with the **teacher** model. 
