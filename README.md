@@ -46,7 +46,7 @@ Let's look at the config [structure](https://github.com/vorobeevich/distillation
 
 # Visualization
 
-All experiments were logged using [_wandb_](<https://wandb.ai/gegelyanec/dist-gen?workspace=user-gegelyanec>) library: .
+All experiments were logged using [_wandb_](<https://wandb.ai/gegelyanec/dist-gen?workspace=user-gegelyanec>) library.
 
 # Citation
 
