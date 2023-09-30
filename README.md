@@ -11,19 +11,23 @@ We **highly** recommend using [conda](https://www.anaconda.com/download) for exp
 
 After installation, make a new environment:
 
-```conda create --name dist```
+```conda create python=3.10 --name dist --yes```
 
 ```conda activate dist```
 
-Install the libraries from the requirements.txt. [Torch](<https://pytorch.org/get-started/locally/>) versions may differ depending on your GPU.
+Install the libraries from the requirements.txt:
+
+```conda install --file requirements.txt --yes```
+
+[Torch](<https://pytorch.org/get-started/locally/>) versions may differ depending on your GPU.
 
 # Data
 
-Load the datasets using the commands:
+Load PACS and Office-Home datasets using the commands:
 
-```chmod ./src/scripts/load_pacs.sh 777```
+```chmod 777 ./src/scripts/load_pacs.sh ./src/scripts/load_officehome.sh```
 
-```./src/scripts/load_pacs.sh```
+```./src/scripts/load_pacs.sh && ./src/scripts/load_officehome.sh```
 
 # Usage
 
@@ -34,6 +38,10 @@ Load the datasets using the commands:
 **distillation:**
 
 ```python src/scripts/train.py --device [ID OF CUDA DEVICE] --config src/configs/[CHOOSE CONFIG TO RUN] --test_domain [TEST_DOMAINS SETS] --dist```
+
+Check id of the required GPU device using ```nvidia-smi``` command. Before starting distillation, you need to train the config with the **teacher** model. 
+
+Let's look at the config structure:
 
 # Visualization
 
