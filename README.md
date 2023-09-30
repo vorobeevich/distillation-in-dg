@@ -61,4 +61,4 @@ All experiments were logged using [_wandb_](<https://wandb.ai/gegelyanec/dist-ge
 
 # Contact
 
-If you have any questions, feel free to contact us through email (vsberezovsksiy@edu.hse.ru or nmorozov@hse.ru).
+If you have any questions, feel free to contact us through email (vsberezovsksiy@edu.hse.ru or nvmorozov@hse.ru).
