@@ -40,9 +40,13 @@ Load **PACS** and **Office-Home** datasets:
 ```python src/scripts/train.py --device [ID OF CUDA DEVICE] --config src/configs/[SELECT CONFIG TO RUN] --test [TEST_DOMAINS SETS] --dist```
 
 For **PACS** _art_painting, photo, sketch, cartoon_ domains are available to select. You can select several at once: _--test photo cartoon_. For **Office-Home** _art, clipart, product, real_world_ domains are available to select. 
-Check id of required **GPU** device using ```nvidia-smi``` command. Before starting distillation, you need to train config with the **teacher** model. 
+Check id of required **GPU** device using ```nvidia-smi``` command. 
+Before starting distillation, you need to train config with the **teacher** model. 
 
-Let's look at the config [structure](https://github.com/vorobeevich/distillation-in-dg/blob/main/src/configs/pacs/swad/student_baseline_1.yaml). At the end of the config name there is a random seed. You can use any model or augmentation from _torchvision_. For the model, it is necessary to include parameters of the last linear layer. Also [_DeiT_](https://huggingface.co/docs/transformers/model_doc/deit) model is avaliable. For the dataset, you must specify name (**PACS**, **OfficeHome**) and list of domains. Also, you can change training parameters: any optimizer from _torch.optim_, batch size, **SWAD** parameters, and so on.
+Let's look at the config [structure](https://github.com/vorobeevich/distillation-in-dg/blob/main/src/configs/pacs/swad/student_baseline_1.yaml). 
+At the end of the config name there is a random seed. You can use any model or augmentation from _torchvision_. For the model, it is necessary to include parameters of the last linear layer. Also [_DeiT_](https://huggingface.co/docs/transformers/model_doc/deit) model is avaliable. 
+For the dataset, you must specify name (**PACS**, **OfficeHome**) and list of domains. 
+Also, you can change training parameters: any optimizer from _torch.optim_, batch size, **SWAD** parameters, and so on.
 
 # Visualization
 
