@@ -4,3 +4,5 @@ Pillow==9.4.0
 PyYAML==6.0
 tqdm==4.64.1
 wandb==0.13.11
+torch==2.0.1
+torchvision==0.15.2
