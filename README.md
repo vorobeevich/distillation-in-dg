@@ -31,19 +31,17 @@ Load **PACS** and **Office-Home** datasets:
 
 # Usage
 
-**independent** learning on Cross Entropy:
+**Hard label training**:
 
 ```python src/scripts/train.py --device [ID OF CUDA DEVICE] --config src/configs/[SELECT CONFIG TO RUN] --test [TEST_DOMAINS SETS]```
 
-**distillation:**
+**Distillation:**
 
 ```python src/scripts/train.py --device [ID OF CUDA DEVICE] --config src/configs/[SELECT CONFIG TO RUN] --test [TEST_DOMAINS SETS] --dist```
 
 For **PACS** _art_painting, photo, sketch, cartoon_ domains are available to select. You can select several at once: _--test photo cartoon_. For **Office-Home** _art, clipart, product, real_world_ domains are available to select. 
 
-Check id of required **GPU** device using ```nvidia-smi``` command. 
-
-Before starting distillation, you need to train config with the **teacher** model.
+Before starting distillation, you need to train the **teacher** model.
 
 Let's look at the config [structure](https://github.com/vorobeevich/distillation-in-dg/blob/main/src/configs/pacs/swad/student_baseline_1.yaml).
 
@@ -55,7 +53,7 @@ Also, you can change training parameters: any optimizer from _torch.optim_, batc
 
 # Visualization
 
-All experiments were logged using [_wandb_](<https://wandb.ai/gegelyanec/dist-gen?workspace=user-gegelyanec>) library.
+All experiments were logged using [_wandb_](<https://wandb.ai/gegelyanec/dist-gen?workspace=user-gegelyanec>).
 
 # Citation
 
@@ -70,4 +68,4 @@ All experiments were logged using [_wandb_](<https://wandb.ai/gegelyanec/dist-ge
 
 # Contact
 
-If you have any questions, feel free to contact us through email (vsberezovsksiy@edu.hse.ru or nvmorozov@hse.ru).
+If you have any questions, feel free to contact us via email (vsberezovsksiy@edu.hse.ru or nvmorozov@hse.ru).
